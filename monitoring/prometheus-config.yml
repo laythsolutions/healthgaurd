@@ -1,0 +1,127 @@
+---
+# Prometheus Configuration
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'healthguard-production'
+    environment: 'production'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets:
+      - alertmanager:9093
+
+# Load rules once and periodically evaluate them
+rule_files:
+  - "/etc/prometheus/rules/*.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+    - targets: ['localhost:9090']
+
+  # Kubernetes API Server
+  - job_name: 'kubernetes-apiservers'
+    kubernetes_sd_configs:
+    - role: endpoints
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+      action: keep
+      regex: default;kubernetes;https
+
+  # Kubernetes Nodes
+  - job_name: 'kubernetes-nodes'
+    kubernetes_sd_configs:
+    - role: node
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    relabel_configs:
+    - action: labelmap
+      regex: __meta_kubernetes_node_label_(.+)
+
+  # HealthGuard Backend
+  - job_name: 'healthguard-backend'
+    kubernetes_sd_configs:
+    - role: pod
+      namespaces:
+        names:
+        - healthguard-production
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_pod_label_app]
+      regex: backend
+      action: keep
+    - source_labels: [__meta_kubernetes_pod_ip]
+      target_label: __address__
+      replacement: $1:8000
+    - source_labels: [__meta_kubernetes_pod_name]
+      target_label: pod
+    - source_labels: [__meta_kubernetes_pod_node_name]
+      target_label: node
+
+  # HealthGuard Frontend
+  - job_name: 'healthguard-frontend'
+    kubernetes_sd_configs:
+    - role: pod
+      namespaces:
+        names:
+        - healthguard-production
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_pod_label_app]
+      regex: frontend
+      action: keep
+    - source_labels: [__meta_kubernetes_pod_ip]
+      target_label: __address__
+      replacement: $1:3000
+    - source_labels: [__meta_kubernetes_pod_name]
+      target_label: pod
+
+  # PostgreSQL Exporter
+  - job_name: 'postgres-exporter'
+    kubernetes_sd_configs:
+    - role: pod
+      namespaces:
+        names:
+        - healthguard-production
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_pod_label_app]
+      regex: postgres
+      action: keep
+    - source_labels: [__meta_kubernetes_pod_ip]
+      target_label: __address__
+      replacement: $1:9187
+
+  # Redis Exporter
+  - job_name: 'redis-exporter'
+    kubernetes_sd_configs:
+    - role: pod
+      namespaces:
+        names:
+        - healthguard-production
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_pod_label_app]
+      regex: redis
+      action: keep
+    - source_labels: [__meta_kubernetes_pod_ip]
+      target_label: __address__
+      replacement: $1:9121
+
+  # Node Exporter (system metrics)
+  - job_name: 'node-exporter'
+    kubernetes_sd_configs:
+    - role: node
+    relabel_configs:
+    - source_labels: [__address__]
+      regex: '(.*):10250'
+      replacement: '${1}:9100'
+      target_label: __address__

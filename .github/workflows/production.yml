@@ -1,0 +1,251 @@
+name: HealthGuard Production CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Cloud Backend Build & Test
+  build-backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Cache pip packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        cd cloud-backend
+        pip install -r requirements.txt
+
+    - name: Run linter
+      run: |
+        cd cloud-backend
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+    - name: Run tests
+      env:
+        DJANGO_SECRET_KEY: test-secret-key
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+      run: |
+        cd cloud-backend
+        python manage.py test
+
+    - name: Build Docker image
+      run: |
+        docker build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.sha }} -f cloud-backend/Dockerfile .
+
+    - name: Log in to registry
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Push Docker image
+      run: |
+        docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.sha }}
+
+  # Edge Gateway Build
+  build-edge:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Build edge gateway Docker image
+      run: |
+        docker build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-edge:${{ github.sha }} -f edge-gateway/Dockerfile .
+
+    - name: Log in to registry
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Push Docker image
+      run: |
+        docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-edge:${{ github.sha }}
+
+  # Web Dashboard Build
+  build-frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Cache node modules
+      uses: actions/cache@v3
+      with:
+        path: web-dashboard/node_modules
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+
+    - name: Install dependencies
+      run: |
+        cd web-dashboard
+        npm ci
+
+    - name: Run linter
+      run: |
+        cd web-dashboard
+        npm run lint
+
+    - name: Run tests
+      run: |
+        cd web-dashboard
+        npm run test
+
+    - name: Build
+      run: |
+        cd web-dashboard
+        npm run build
+
+    - name: Build Docker image
+      run: |
+        docker build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.sha }} -f web-dashboard/Dockerfile .
+
+    - name: Log in to registry
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Push Docker image
+      run: |
+        docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.sha }}
+
+  # Security Scanning
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-edge, build-frontend]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.sha }}
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy results to GitHub Security
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  # Deploy to Staging
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-edge, build-frontend]
+    if: github.ref == 'refs/heads/main'
+    environment: staging
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Configure kubectl
+      run: |
+        echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+
+    - name: Deploy to Kubernetes
+      run: |
+        kubectl set image deployment/healthguard-backend \
+          backend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.sha }} \
+          -n healthguard-staging
+
+        kubectl set image deployment/healthguard-frontend \
+          frontend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.sha }} \
+          -n healthguard-staging
+
+    - name: Verify deployment
+      run: |
+        kubectl rollout status deployment/healthguard-backend -n healthguard-staging
+        kubectl rollout status deployment/healthguard-frontend -n healthguard-staging
+
+  # Deploy to Production
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: [security-scan, deploy-staging]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Configure kubectl
+      run: |
+        echo "${{ secrets.KUBE_CONFIG_PROD }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+
+    - name: Deploy to Kubernetes (Production)
+      run: |
+        kubectl set image deployment/healthguard-backend \
+          backend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.sha }} \
+          -n healthguard-production
+
+        kubectl set image deployment/healthguard-frontend \
+          frontend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.sha }} \
+          -n healthguard-production
+
+    - name: Verify deployment
+      run: |
+        kubectl rollout status deployment/healthguard-backend -n healthguard-production
+        kubectl rollout status deployment/healthguard-frontend -n healthguard-production
+
+    - name: Run smoke tests
+      run: |
+        # Health check
+        curl -f https://api.healthguard.com/health || exit 1
+        curl -f https://healthguard.com/ || exit 1
+
+    - name: Notify team
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        text: |
+          Production deployment complete!
+          Commit: ${{ github.sha }}
+          Author: ${{ github.actor }}
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+      if: always()

@@ -1,0 +1,247 @@
+---
+# Prometheus Alert Rules for HealthGuard
+groups:
+- name: healthguard_alerts
+  interval: 30s
+  rules:
+
+  # Backend alerts
+  - alert: BackendDown
+    expr: up{job="healthguard-backend"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      service: backend
+    annotations:
+      summary: "Backend instance {{ $labels.pod }} is down"
+      description: "{{ $labels.pod }} has been down for more than 1 minute"
+
+  - alert: BackendHighErrorRate
+    expr: rate(http_requests_total{job="healthguard-backend",status=~"5.."}[5m]) > 0.05
+    for: 5m
+    labels:
+      severity: warning
+      service: backend
+    annotations:
+      summary: "High error rate on {{ $labels.pod }}"
+      description: "Error rate is {{ $value | humanizePercentage }} for the last 5 minutes"
+
+  - alert: BackendHighLatency
+    expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="healthguard-backend"}[5m])) > 1
+    for: 5m
+    labels:
+      severity: warning
+      service: backend
+    annotations:
+      summary: "High latency on {{ $labels.pod }}"
+      description: "P95 latency is {{ $value }}s"
+
+  - alert: BackendHighCPU
+    expr: rate(container_cpu_usage_seconds_total{job="healthguard-backend"}[5m]) > 0.8
+    for: 10m
+    labels:
+      severity: warning
+      service: backend
+    annotations:
+      summary: "High CPU usage on {{ $labels.pod }}"
+      description: "CPU usage is {{ $value | humanizePercentage }}"
+
+  - alert: BackendHighMemory
+    expr: container_memory_usage_bytes{job="healthguard-backend"} / container_spec_memory_limit_bytes{job="healthguard-backend"} > 0.9
+    for: 10m
+    labels:
+      severity: warning
+      service: backend
+    annotations:
+      summary: "High memory usage on {{ $labels.pod }}"
+      description: "Memory usage is {{ $value | humanizePercentage }} of limit"
+
+  # Frontend alerts
+  - alert: FrontendDown
+    expr: up{job="healthguard-frontend"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      service: frontend
+    annotations:
+      summary: "Frontend instance {{ $labels.pod }} is down"
+
+  - alert: FrontendHighErrorRate
+    expr: rate(http_requests_total{job="healthguard-frontend",status=~"5.."}[5m]) > 0.05
+    for: 5m
+    labels:
+      severity: warning
+      service: frontend
+    annotations:
+      summary: "High error rate on frontend"
+
+  # Database alerts
+  - alert: PostgreSQLDown
+    expr: up{job="postgres-exporter"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      service: database
+    annotations:
+      summary: "PostgreSQL database is down"
+
+  - alert: PostgreSQLHighConnections
+    expr: pg_stat_database_numbackends{datname="healthguard"} > 80
+    for: 5m
+    labels:
+      severity: warning
+      service: database
+    annotations:
+      summary: "PostgreSQL high connection count"
+      description: "{{ $value }} active connections"
+
+  - alert: PostgreSQLSlowQueries
+    expr: rate(pg_stat_statements_calls_total{datname="healthguard"}[5m]) < 10
+    for: 10m
+    labels:
+      severity: info
+      service: database
+    annotations:
+      summary: "PostgreSQL slow query performance"
+
+  - alert: RedisDown
+    expr: up{job="redis-exporter"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      service: cache
+    annotations:
+      summary: "Redis cache is down"
+
+  - alert: RedisHighMemory
+    expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+    for: 10m
+    labels:
+      severity: warning
+      service: cache
+    annotations:
+      summary: "Redis high memory usage"
+      description: "Memory usage is {{ $value | humanizePercentage }}"
+
+  # Business logic alerts
+  - alert: HighSensorAlertRate
+    expr: rate(sensor_alerts_total[5m]) > 10
+    for: 5m
+    labels:
+      severity: warning
+      service: business
+    annotations:
+      summary: "High sensor alert rate"
+      description: "{{ $value | humanize }} alerts/sec"
+
+  - alert: CriticalSensorAlerts
+    expr: sensor_alerts_total{severity="critical"} > 0
+    for: 1m
+    labels:
+      severity: critical
+      service: business
+    annotations:
+      summary: "Critical sensor alerts detected"
+      description: "{{ $value }} critical alerts"
+
+  - alert: ManyOfflineGateways
+    expr: gateways_online_total / gateways_total < 0.9
+    for: 5m
+    labels:
+      severity: warning
+      service: business
+    annotations:
+      summary: "Many gateways offline"
+      description: "{{ $value | humanizePercentage }} of gateways are offline"
+
+  - alert: FailedInspectionPredictions
+    expr: rate(prediction_errors_total[5m]) > 0.1
+    for: 10m
+    labels:
+      severity: warning
+      service: analytics
+    annotations:
+      summary: "High prediction error rate"
+      description: "{{ $value | humanizePercentage }} prediction error rate"
+
+  # Security alerts
+  - alert: HighFailedAuthAttempts
+    expr: rate(auth_failed_total[5m]) > 10
+    for: 5m
+    labels:
+      severity: warning
+      service: security
+    annotations:
+      summary: "High rate of failed authentication attempts"
+      description: "{{ $value | humanize }} failed attempts/sec"
+
+  - alert: SuspiciousAPIActivity
+    expr: rate(api_requests_total{user="anonymous"}[5m]) > 100
+    for: 5m
+    labels:
+      severity: warning
+      service: security
+    annotations:
+      summary: "Suspicious anonymous API activity"
+      description: "{{ $value | humanize }} anonymous requests/sec"
+
+  # MQTT alerts
+  - alert: MQTTBrokerDown
+    expr: up{job="mosquitto"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      service: mqtt
+    annotations:
+      summary: "MQTT broker is down"
+
+  - alert: MQTTMessageBacklog
+    expr: mqtt_messages_total{queue="pending"} > 10000
+    for: 5m
+    labels:
+      severity: warning
+      service: mqtt
+    annotations:
+      summary: "MQTT message backlog"
+      description: "{{ $value }} messages pending"
+
+  # Capacity planning
+  - alert: ApproachingStorageLimit
+    expr: node_filesystem_avail_bytes{mountpoint="/var/lib/postgresql"} / node_filesystem_size_bytes{mountpoint="/var/lib/postgresql"} < 0.1
+    for: 1h
+    labels:
+      severity: warning
+      service: infrastructure
+    annotations:
+      summary: "Database storage running low"
+      description: "{{ $value | humanizePercentage }} free"
+
+  - alert: PodCrashLooping
+    expr: rate(kube_pod_container_status_restarts_total[15m]) > 0
+    for: 15m
+    labels:
+      severity: warning
+      service: infrastructure
+    annotations:
+      summary: "Pod {{ $labels.pod }} is crash looping"
+      description: "{{ $value | humanize }} restarts in 15 minutes"
+
+  # Synthetic monitoring
+  - alert: APICheckpointSlow
+    expr: api_check_duration_seconds{endpoint="/health"} > 2
+    for: 5m
+    labels:
+      severity: warning
+      service: infrastructure
+    annotations:
+      summary: "API health check slow"
+      description: "Health check took {{ $value }}s"
+
+  - alert: APICheckpointFailing
+    expr: api_check_success == 0
+    for: 2m
+    labels:
+      severity: critical
+      service: infrastructure
+    annotations:
+      summary: "API health check failing"
