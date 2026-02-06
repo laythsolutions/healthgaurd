@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ alert.severity }} Alert - {{ restaurant.name }}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .header {
+            background-color: {{ severity_color }};
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .severity-badge {
+            display: inline-block;
+            background-color: rgba(255,255,255,0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 10px;
+            text-transform: uppercase;
+        }
+        .content {
+            padding: 30px;
+        }
+        .alert-title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .alert-message {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #555;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-left: 4px solid {{ severity_color }};
+            border-radius: 4px;
+        }
+        .alert-details {
+            margin: 20px 0;
+        }
+        .detail-row {
+            display: flex;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: #666;
+            width: 140px;
+            flex-shrink: 0;
+        }
+        .detail-value {
+            color: #333;
+            flex-grow: 1;
+        }
+        .device-info {
+            background-color: #f0f7ff;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .device-info h4 {
+            margin: 0 0 10px 0;
+            color: #1e40af;
+        }
+        .reading-data {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .reading-item {
+            background-color: white;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .reading-label {
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+        }
+        .reading-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1e40af;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: {{ severity_color }};
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 600;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .secondary-actions {
+            text-align: center;
+            margin-top: 15px;
+        }
+        .secondary-link {
+            color: #666;
+            text-decoration: none;
+            font-size: 14px;
+            margin: 0 10px;
+        }
+        .footer {
+            background-color: #f9f9f9;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            border-top: 1px solid #e0e0e0;
+        }
+        .timestamp {
+            font-size: 11px;
+            color: #999;
+            margin-top: 10px;
+        }
+        {% if alert.severity == 'CRITICAL' %}
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        {% endif %}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 {% if alert.severity == 'CRITICAL' %}class="pulse"{% endif %}>HealthGuard Alert</h1>
+            <span class="severity-badge">{{ alert.severity }}</span>
+        </div>
+
+        <div class="content">
+            <h2 class="alert-title">{{ alert.title }}</h2>
+
+            <div class="alert-message">
+                {{ alert.message }}
+            </div>
+
+            {% if alert.device %}
+            <div class="device-info">
+                <h4>📍 Affected Device</h4>
+                <div style="margin-bottom: 10px;">
+                    <strong>{{ alert.device.name|default:alert.device.device_id }}</strong>
+                    <br>
+                    <span style="font-size: 13px; color: #666;">
+                        Type: {{ alert.device.get_device_type_display }}
+                        {% if alert.device.location %}
+                        | Location: {{ alert.device.location.name }}
+                        {% endif %}
+                    </span>
+                </div>
+
+                {% if alert.temperature %}
+                <div class="reading-data">
+                    {% if alert.temperature %}
+                    <div class="reading-item">
+                        <div class="reading-label">Current Temperature</div>
+                        <div class="reading-value">{{ alert.temperature }}°F</div>
+                    </div>
+                    {% endif %}
+                    {% if alert.threshold_min %}
+                    <div class="reading-item">
+                        <div class="reading-label">Minimum Threshold</div>
+                        <div class="reading-value">{{ alert.threshold_min }}°F</div>
+                    </div>
+                    {% endif %}
+                    {% if alert.threshold_max %}
+                    <div class="reading-item">
+                        <div class="reading-label">Maximum Threshold</div>
+                        <div class="reading-value">{{ alert.threshold_max }}°F</div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="alert-details">
+                <div class="detail-row">
+                    <div class="detail-label">Restaurant:</div>
+                    <div class="detail-value">{{ restaurant.name }}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Alert Type:</div>
+                    <div class="detail-value">{{ alert.get_alert_type_display }}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Severity:</div>
+                    <div class="detail-value">
+                        <span style="color: {{ severity_color }}; font-weight: bold;">
+                            {{ alert.get_severity_display }}
+                        </span>
+                    </div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Time:</div>
+                    <div class="detail-value">
+                        {{ alert.created_at|date:"l, F j, Y" }} at {{ alert.created_at|time:"g:i A" }}
+                    </div>
+                </div>
+                {% if alert.device and alert.device.location %}
+                <div class="detail-row">
+                    <div class="detail-label">Location:</div>
+                    <div class="detail-value">{{ alert.device.location.address }}</div>
+                </div>
+                {% endif %}
+            </div>
+
+            <div style="text-align: center;">
+                <a href="{{ action_url }}" class="cta-button">View & Acknowledge Alert</a>
+
+                <div class="secondary-actions">
+                    <a href="{{ action_url }}?action=resolve" class="secondary-link">Mark as Resolved</a>
+                    <span style="color: #ccc;">|</span>
+                    <a href="{{ action_url }}?action=false_positive" class="secondary-link">False Positive</a>
+                </div>
+            </div>
+
+            <div class="timestamp">
+                Alert ID: #{{ alert.id }} | Generated: {% now "Y-m-d H:i:s" %}
+            </div>
+        </div>
+
+        <div class="footer">
+            <p><strong>Immediate Action Required{% if alert.severity == 'CRITICAL' %} 🚨{% endif %}</strong></p>
+
+            {% if alert.severity == 'CRITICAL' %}
+            <p style="color: #dc2626; font-weight: 600;">
+                This is a CRITICAL alert that requires immediate attention to prevent food safety violations.
+                Take corrective action now and document the resolution.
+            </p>
+            {% elif alert.severity == 'WARNING' %}
+            <p style="color: #f59e0b;">
+                This warning should be addressed soon to prevent escalation to a critical issue.
+            </p>
+            {% endif %}
+
+            <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 15px 0;">
+
+            <p>
+                <a href="{{ action_url }}" style="color: #2563eb;">View in Dashboard</a> |
+                <a href="#" style="color: #2563eb;">Notification Settings</a> |
+                <a href="#" style="color: #2563eb;">Support</a>
+            </p>
+            <p style="margin-top: 15px;">
+                © {% now "Y" %} HealthGuard. All rights reserved.<br>
+                <span style="font-size: 11px; color: #999;">
+                    This is an automated message from your restaurant compliance monitoring system.
+                </span>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

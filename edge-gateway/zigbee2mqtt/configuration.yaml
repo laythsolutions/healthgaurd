@@ -1,0 +1,63 @@
+# Zigbee2MQTT Configuration
+
+homeassistant: false
+permit_join: false
+
+# MQTT settings
+mqtt:
+  base_topic: zigbee2mqtt
+  server: 'mqtt://mosquitto:1883'
+
+# Serial settings
+serial:
+  port: /dev/ttyUSB0
+  #adapter: conbee
+
+# Frontend settings
+frontend:
+  port: 8080
+
+# Device settings
+devices:
+  '0x00158d0001234567':
+    friendly_name: 'Walk_in_Cooler_Temp'
+    retain: true
+  '0x00158d0001234568':
+    friendly_name: 'Freezer_Temp'
+    retain: true
+
+# Groups
+groups:
+  'kitchen_sensors':
+    friendly_name: Kitchen Sensors
+    devices:
+      - '0x00158d0001234567'
+      - '0x00158d0001234568'
+
+# Advanced settings
+advanced:
+  log_level: info
+  pan_id: 0x6754
+  channel: 11
+  network_key:
+    - 1
+    - 3
+    - 5
+    - 7
+    - 9
+    - 11
+    - 13
+    - 15
+    - 0
+    - 2
+    - 4
+    - 6
+    - 8
+    - 10
+    - 12
+    - 13
+    - 14
+
+# OTA updates
+ota:
+  disable_automatic_update_check: false

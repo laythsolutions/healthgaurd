@@ -1,0 +1,12 @@
+# OAuth2 Authentication
+requests==2.31.0
+
+# MFA (TOTP)
+pyotp==2.9.0
+qrcode==7.4.2
+
+# Email (SendGrid already in alerts requirements)
+# sendgrid==6.11.0
+
+# For API key authentication
+# No additional dependencies - uses standard library

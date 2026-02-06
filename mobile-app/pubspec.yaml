@@ -1,0 +1,78 @@
+name: healthguard
+description: HealthGuard Restaurant Compliance Mobile App
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # UI
+  cupertino_icons: ^1.0.6
+
+  # State Management
+  flutter_riverpod: ^2.4.9
+  riverpod_annotation: ^2.3.3
+
+  # MQTT (Offline-first)
+  mqtt_client: ^10.0.0
+
+  # Local Database
+  sqflite: ^2.3.0
+  path_provider: ^2.1.1
+  shared_preferences: ^2.2.2
+
+  # HTTP & API
+  http: ^1.1.2
+  dio: ^5.4.0
+  connectivity_plus: ^5.0.2
+
+  # JSON & Serialization
+  json_annotation: ^4.8.1
+  freezed_annotation: ^2.4.1
+
+  # Charts & Visualization
+  fl_chart: ^0.65.0
+  syncfusion_flutter_charts: ^24.1.41
+
+  # Auth
+  flutter_secure_storage: ^9.0.0
+  local_auth: ^2.1.8
+
+  # Notifications
+  flutter_local_notifications: ^16.3.0
+  firebase_messaging: ^14.7.10
+  firebase_core: ^2.24.2
+
+  # Discovery
+  zeroconf: ^0.2.0
+
+  # Utilities
+  intl: ^0.18.1
+  logger: ^2.0.2+1
+  uuid: ^4.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+  build_runner: ^2.4.7
+  json_serializable: ^6.7.1
+  freezed: ^2.4.5
+  riverpod_generator: ^2.3.9
+  flutter_launcher_icons: ^0.13.1
+
+flutter:
+  uses-material-design: true
+
+  # assets
+  assets:
+    - assets/images/
+    - assets/icons/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/app_icon.png"

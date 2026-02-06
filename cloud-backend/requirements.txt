@@ -1,0 +1,55 @@
+# Django Core
+Django==4.2.11
+djangorestframework==3.14.0
+django-cors-headers==4.3.1
+django-filter==23.5
+django-extensions==3.2.3
+
+# Database
+psycopg2-binary==2.9.9
+django-timescaledb==0.2.0
+
+# API & Serialization
+djangorestframework-simplejwt==5.3.1
+PyYAML==6.0.1
+python-dotenv==1.0.1
+
+# MQTT & IoT
+paho-mqtt==1.6.1
+
+# Async & Performance
+celery==5.3.6
+redis==5.0.1
+channels==4.0.0
+channels-redis==4.2.0
+daphne==4.0.0
+
+# Monitoring & Logging
+structlog==24.1.0
+
+# Security
+cryptography==42.0.5
+
+# HTTP & API
+requests==2.31.0
+httpx==0.26.0
+
+# Data & Analytics
+pandas==2.2.1
+numpy==1.26.4
+
+# Testing
+pytest==8.0.2
+pytest-django==4.8.0
+pytest-asyncio==0.23.4
+factory-boy==3.3.0
+faker==23.3.0
+
+# Code Quality
+black==24.1.1
+flake8==7.0.0
+mypy==1.8.0
+
+# Server
+gunicorn==21.2.0
+uvicorn==0.27.1

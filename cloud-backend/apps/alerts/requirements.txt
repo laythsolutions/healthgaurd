@@ -1,0 +1,11 @@
+# Twilio - SMS Delivery
+twilio==8.11.0
+
+# SendGrid - Email Delivery
+sendgrid==6.11.0
+
+# Firebase - Push Notifications
+firebase-admin==6.3.0
+
+# Webhook delivery (requests is already a dependency)
+# requests==2.31.0

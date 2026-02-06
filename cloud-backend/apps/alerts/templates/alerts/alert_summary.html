@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Alert Summary - {{ restaurant.name }}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 26px;
+            font-weight: 600;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0;
+            background-color: #f9fafb;
+            padding: 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .stat-box {
+            text-align: center;
+            padding: 15px;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-critical .stat-value { color: #dc2626; }
+        .stat-warning .stat-value { color: #f59e0b; }
+        .stat-info .stat-value { color: #3b82f6; }
+        .content {
+            padding: 30px;
+        }
+        .section-header {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #1f2937;
+        }
+        .alert-item {
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #e5e7eb;
+            background-color: #f9fafb;
+            border-radius: 4px;
+        }
+        .alert-item.critical { border-left-color: #dc2626; background-color: #fef2f2; }
+        .alert-item.warning { border-left-color: #f59e0b; background-color: #fffbeb; }
+        .alert-item.info { border-left-color: #3b82f6; background-color: #eff6ff; }
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 8px;
+        }
+        .alert-title {
+            font-weight: 600;
+            font-size: 15px;
+            color: #1f2937;
+        }
+        .alert-badge {
+            font-size: 10px;
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 10px;
+            text-transform: uppercase;
+            white-space: nowrap;
+            margin-left: 10px;
+        }
+        .badge-critical { background-color: #dc2626; color: white; }
+        .badge-warning { background-color: #f59e0b; color: white; }
+        .badge-info { background-color: #3b82f6; color: white; }
+        .alert-message {
+            font-size: 14px;
+            color: #4b5563;
+            margin-bottom: 8px;
+        }
+        .alert-meta {
+            font-size: 12px;
+            color: #9ca3af;
+        }
+        .no-alerts {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+        .no-alerts-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        .footer {
+            background-color: #f9fafb;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #6b7280;
+            border-top: 1px solid #e5e7eb;
+        }
+        .footer a {
+            color: #3b82f6;
+            text-decoration: none;
+        }
+        .active-alerts-banner {
+            background-color: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin: 0 30px 20px 30px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+        }
+        .banner-icon {
+            font-size: 24px;
+            margin-right: 15px;
+        }
+        .banner-text {
+            font-size: 14px;
+        }
+        .banner-text strong {
+            color: #92400e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Daily Alert Summary</h1>
+            <p>{{ restaurant.name }} | {{ summary_date }}</p>
+        </div>
+
+        <div class="summary-stats">
+            <div class="stat-box stat-critical">
+                <div class="stat-value">{{ critical_count }}</div>
+                <div class="stat-label">Critical</div>
+            </div>
+            <div class="stat-box stat-warning">
+                <div class="stat-value">{{ warning_count }}</div>
+                <div class="stat-label">Warnings</div>
+            </div>
+            <div class="stat-box stat-info">
+                <div class="stat-value">{{ info_count }}</div>
+                <div class="stat-label">Info</div>
+            </div>
+        </div>
+
+        {% if active_count > 0 %}
+        <div class="active-alerts-banner">
+            <span class="banner-icon">⚠️</span>
+            <span class="banner-text">
+                <strong>{{ active_count }} alert{{ active_count|pluralize }} still active</strong>
+                and require attention
+            </span>
+        </div>
+        {% endif %}
+
+        <div class="content">
+            <h2 class="section-header">Recent Alerts</h2>
+
+            {% if alerts %}
+                {% for alert in alerts %}
+                <div class="alert-item {{ alert.severity|lower }}">
+                    <div class="alert-header">
+                        <div class="alert-title">{{ alert.title }}</div>
+                        <span class="alert-badge badge-{{ alert.severity|lower }}">
+                            {{ alert.get_severity_display }}
+                        </span>
+                    </div>
+
+                    {% if alert.message %}
+                    <div class="alert-message">{{ alert.message }}</div>
+                    {% endif %}
+
+                    <div class="alert-meta">
+                        {{ alert.created_at|date:"g:i A" }}
+                        {% if alert.device %}
+                        | {{ alert.device.name|default:alert.device.device_id }}
+                        {% endif %}
+                        | Status: <strong>{{ alert.get_status_display }}</strong>
+                    </div>
+                </div>
+                {% endfor %}
+
+                {% if alerts|length >= 20 %}
+                <p style="text-align: center; color: #6b7280; font-size: 13px; margin-top: 20px;">
+                    Showing 20 most recent alerts. View dashboard for complete history.
+                </p>
+                {% endif %}
+            {% else %}
+                <div class="no-alerts">
+                    <div class="no-alerts-icon">✅</div>
+                    <p style="font-size: 16px; font-weight: 600; margin-bottom: 5px;">No Alerts Today</p>
+                    <p style="font-size: 14px;">Great job! No compliance alerts were generated in the last 24 hours.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="footer">
+            <p>
+                <strong>Need to adjust alert settings?</strong><br>
+                Manage notification preferences and alert rules in your dashboard.
+            </p>
+            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 15px 0;">
+            <p>
+                <a href="#">View Dashboard</a> |
+                <a href="#">Alert Settings</a> |
+                <a href="#">Support</a>
+            </p>
+            <p style="margin-top: 15px;">
+                © {% now "Y" %} HealthGuard. All rights reserved.<br>
+                <span style="font-size: 11px; color: #9ca3af;">
+                    This is an automated daily summary. To change frequency, visit your notification settings.
+                </span>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
