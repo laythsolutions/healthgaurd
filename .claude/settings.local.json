@@ -3,7 +3,14 @@
     "allow": [
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm install:*)",
+      "Bash(sudo rm:*)",
+      "Bash(npm run dev:*)",
+      "Bash(sudo chown:*)",
+      "Bash(curl:*)",
+      "Bash(xdg-open http://localhost:3001/dashboard/manager)"
     ]
   }
 }
