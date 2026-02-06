@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  # Cloud Backend API
+  cloud-api:
+    build:
+      context: ./cloud-backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8000"  # Changed from 8000 to 8080
+    environment:
+      - DATABASE_URL=postgresql://healthguard:dev_password@postgres:5432/healthguard
+      - TIMESCALEDB_URL=postgresql://healthguard:dev_password@timescaledb:5432/healthguard_timeseries
+      - MQTT_BROKER_HOST=mosquitto
+      - MQTT_BROKER_PORT=1883
+      - SECRET_KEY=change-this-in-production-use-environment-variable
+      - DEBUG=True
+      - ALLOWED_HOSTS=localhost,127.0.0.1,cloud-api
+      - FRONTEND_URL=http://localhost:3001
+    volumes:
+      - ./cloud-backend:/app
+    depends_on:
+      - postgres
+      - timescaledb
+      - mosquitto
+    restart: unless-stopped
+
+  # PostgreSQL for application data
+  postgres:
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_DB=healthguard
+      - POSTGRES_USER=healthguard
+      - POSTGRES_PASSWORD=dev_password
+    ports:
+      - "5434:5432"  # Changed from 5432 to 5434
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # TimescaleDB for time-series sensor data
+  timescaledb:
+    image: timescale/timescaledb:latest-pg14
+    environment:
+      - POSTGRES_DB=healthguard_timeseries
+      - POSTGRES_USER=healthguard
+      - POSTGRES_PASSWORD=dev_password
+    ports:
+      - "5435:5432"  # Changed from 5433 to 5435
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # MQTT Broker for IoT communication
+  mosquitto:
+    image: eclipse-mosquitto:2.0.18
+    ports:
+      - "1884:1883"  # Changed from 1883 to 1884
+      - "9002:9001"  # Changed from 9001 to 9002
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_logs:/mosquitto/log
+    restart: unless-stopped
+
+  # Redis for caching and real-time features
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"  # Changed from 6379 to 6380
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  # Web Dashboard (Development mode with hot reload)
+  web-dashboard:
+    build:
+      context: ./web-dashboard
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3001:3000"  # Changed from 3000 to 3001
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
+      - NEXT_PUBLIC_WS_URL=ws://localhost:8080
+    volumes:
+      - ./web-dashboard:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - cloud-api
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  timescaledb_data:
+  mosquitto_data:
+  mosquitto_logs:
+  redis_data:
