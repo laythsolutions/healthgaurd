@@ -2,12 +2,13 @@
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { TrendIndicator } from './trend-indicator';
-import { useCounterAnimation, useHoverAnimation } from '@/hooks/use-gsap';
+import { useCounterAnimation } from '@/hooks/use-gsap';
 import { GlassCard } from '@/components/layout/glass-card';
 import { CounterValue, GradientText, FloatingElement } from '@/components/animations';
 import { cn } from '@/lib/utils';
-import { lucideIconType } from 'lucide-react';
 import { CheckCircle, AlertTriangle, Activity, Thermometer, TrendingUp, TrendingDown } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import { gsap } from 'gsap';
 
 interface KPICardProps {
   title: string;
@@ -64,28 +65,20 @@ export function KPICard({
     duration: title === 'Compliance Score' ? 1.5 : 1,
   });
 
-  const cardRef = useHoverAnimation((isHovering) => {
-    const card = cardRef.current;
-    if (!card) return null as any;
+  const cardRef = useRef<HTMLDivElement>(null);
 
-    if (isHovering) {
-      return window.gsap.to(card, {
-        y: -8,
-        scale: 1.02,
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0 / 0.15), 0 0 0 1px rgba(139, 92, 246, 0.2)',
-        duration: 0.3,
-        ease: 'power2.out',
-      });
-    } else {
-      return window.gsap.to(card, {
-        y: 0,
-        scale: 1,
-        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-        duration: 0.3,
-        ease: 'power2.out',
+  // Entrance animation
+  useEffect(() => {
+    if (cardRef.current) {
+      gsap.from(cardRef.current, {
+        opacity: 0,
+        y: 30,
+        scale: 0.95,
+        duration: 0.6,
+        ease: 'back.out(1.7)',
       });
     }
-  });
+  }, []);
 
   const bgGradient = gradient || statusGradients[status];
 

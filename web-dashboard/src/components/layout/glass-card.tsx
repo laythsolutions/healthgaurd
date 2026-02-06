@@ -97,7 +97,7 @@ export const GlassCard = forwardRef<HTMLDivElement, GlassCardProps>(
           hover && 'cursor-pointer',
           className
         )}
-        style={{ transformStyle: 'preserve-3d' }}
+        style={{ transformStyle: 'preserve-3d', perspective: '1000px' }}
         {...props}
       >
         {children}

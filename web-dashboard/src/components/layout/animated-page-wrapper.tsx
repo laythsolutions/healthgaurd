@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, ReactNode } from 'react';
+import { useEffect, useRef, ReactNode, forwardRef } from 'react';
 import { gsap } from 'gsap';
 import { cn } from '@/lib/utils';
 import { prefersReducedMotion } from '@/lib/animations/gsap';
@@ -14,97 +14,105 @@ interface AnimatedPageWrapperProps {
   childSelector?: string;
 }
 
-export function AnimatedPageWrapper({
-  children,
-  className,
-  animation = 'fade',
-  delay = 0,
-  staggerAmount = 0.1,
-  childSelector,
-}: AnimatedPageWrapperProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+export const AnimatedPageWrapper = forwardRef<HTMLDivElement, AnimatedPageWrapperProps>(
+  (
+    {
+      children,
+      className,
+      animation = 'fade',
+      delay = 0,
+      staggerAmount = 0.1,
+      childSelector,
+    },
+    ref
+  ) => {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const internalRef = (ref as React.RefObject<HTMLDivElement>) || containerRef;
 
-  useEffect(() => {
-    if (!containerRef.current || prefersReducedMotion()) return;
+    useEffect(() => {
+      if (!internalRef.current || prefersReducedMotion()) return;
 
-    const ctx = gsap.context(() => {
-      const targets = childSelector
-        ? `${childSelector}`
-        : containerRef.current?.children;
+      const ctx = gsap.context(() => {
+        const targets = childSelector
+          ? `${childSelector}`
+          : internalRef.current?.children;
 
-      switch (animation) {
-        case 'fade':
-          gsap.fromTo(
-            targets,
-            { opacity: 0, y: 30 },
-            {
-              opacity: 1,
-              y: 0,
-              duration: 0.6,
-              delay,
-              stagger: childSelector ? staggerAmount : 0,
-              ease: 'power2.out',
-            }
-          );
-          break;
+        switch (animation) {
+          case 'fade':
+            gsap.fromTo(
+              targets,
+              { opacity: 0, y: 30 },
+              {
+                opacity: 1,
+                y: 0,
+                duration: 0.6,
+                delay,
+                stagger: childSelector ? staggerAmount : 0,
+                ease: 'power2.out',
+              }
+            );
+            break;
 
-        case 'slide':
-          gsap.fromTo(
-            targets,
-            { opacity: 0, x: -50 },
-            {
-              opacity: 1,
-              x: 0,
-              duration: 0.6,
-              delay,
-              stagger: childSelector ? staggerAmount : 0,
-              ease: 'power2.out',
-            }
-          );
-          break;
+          case 'slide':
+            gsap.fromTo(
+              targets,
+              { opacity: 0, x: -50 },
+              {
+                opacity: 1,
+                x: 0,
+                duration: 0.6,
+                delay,
+                stagger: childSelector ? staggerAmount : 0,
+                ease: 'power2.out',
+              }
+            );
+            break;
 
-        case 'scale':
-          gsap.fromTo(
-            targets,
-            { opacity: 0, scale: 0.9 },
-            {
-              opacity: 1,
-              scale: 1,
-              duration: 0.5,
-              delay,
-              stagger: childSelector ? staggerAmount : 0,
-              ease: 'back.out(1.7)',
-            }
-          );
-          break;
+          case 'scale':
+            gsap.fromTo(
+              targets,
+              { opacity: 0, scale: 0.9 },
+              {
+                opacity: 1,
+                scale: 1,
+                duration: 0.5,
+                delay,
+                stagger: childSelector ? staggerAmount : 0,
+                ease: 'back.out(1.7)',
+              }
+            );
+            break;
 
-        case 'stagger':
-          gsap.fromTo(
-            targets,
-            { opacity: 0, y: 20, scale: 0.95 },
-            {
-              opacity: 1,
-              y: 0,
-              scale: 1,
-              duration: 0.5,
-              delay,
-              stagger: staggerAmount,
-              ease: 'power2.out',
-            }
-          );
-          break;
-      }
-    }, containerRef);
+          case 'stagger':
+            gsap.fromTo(
+              targets,
+              { opacity: 0, y: 20, scale: 0.95 },
+              {
+                opacity: 1,
+                y: 0,
+                scale: 1,
+                duration: 0.5,
+                delay,
+                stagger: staggerAmount,
+                ease: 'power2.out',
+              }
+            );
+            break;
+        }
+      }, internalRef);
 
-    return () => ctx.revert();
-  }, [animation, delay, staggerAmount, childSelector]);
+      return () => ctx.revert();
+    }, [animation, delay, staggerAmount, childSelector, internalRef]);
 
-  return (
-    <div ref={containerRef} className={className}>
-      {children}
-    </div>
-  );
-}
+    return (
+      <div ref={internalRef} className={className}>
+        {children}
+      </div>
+    );
+  }
+);
+
+AnimatedPageWrapper.displayName = 'AnimatedPageWrapper';
 
 // Wrapper for staggered grid layouts
 interface StaggeredGridProps {
@@ -120,8 +128,6 @@ export function StaggeredGrid({
   cols = 3,
   staggerAmount = 0.1,
 }: StaggeredGridProps) {
-  const gridRef = useRef<HTMLDivElement>(null);
-
   const colsClass = {
     1: 'grid-cols-1',
     2: 'grid-cols-1 md:grid-cols-2',
@@ -131,7 +137,6 @@ export function StaggeredGrid({
 
   return (
     <AnimatedPageWrapper
-      ref={gridRef}
       animation="stagger"
       staggerAmount={staggerAmount}
       childSelector=".stagger-item"

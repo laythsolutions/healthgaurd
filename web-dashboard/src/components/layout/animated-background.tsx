@@ -27,11 +27,12 @@ export function AnimatedBackground({
         if (!blob) return;
 
         const duration = intensity === 'high' ? 8 : intensity === 'medium' ? 12 : 20;
-        const yOffset = 30 + index * 20;
+        const yOffset = -(30 + index * 20);
+        const xOffset = 20 + index * 10;
 
         gsap.to(blob, {
-          y: `-=${yOffset}`,
-          x: `+=${20 + index * 10}`,
+          y: yOffset,
+          x: xOffset,
           scale: 1.1 + index * 0.05,
           rotation: index % 2 === 0 ? 90 : -90,
           duration,

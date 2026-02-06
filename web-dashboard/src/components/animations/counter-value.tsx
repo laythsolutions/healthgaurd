@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, ForwardedRef, forwardRef } from 'react';
+import { useEffect, useRef, ForwardedRef, forwardRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { cn } from '@/lib/utils';
 import { prefersReducedMotion } from '@/lib/animations/gsap';
@@ -30,18 +30,17 @@ export const CounterValue = forwardRef<HTMLSpanElement, CounterValueProps>(
   ) => {
     const internalRef = useRef<HTMLSpanElement>(null);
     const spanRef = (ref as React.RefObject<HTMLSpanElement>) || internalRef;
+    const [displayValue, setDisplayValue] = useState(0);
     const hasAnimated = useRef(false);
 
     useEffect(() => {
       if (
-        !spanRef.current ||
         !enableAnimation ||
         hasAnimated.current ||
-        prefersReducedMotion()
+        prefersReducedMotion() ||
+        typeof window === 'undefined'
       ) {
-        if (spanRef.current && !enableAnimation) {
-          spanRef.current.textContent = `${prefix}${value.toFixed(decimals)}${suffix}`;
-        }
+        setDisplayValue(value);
         return;
       }
 
@@ -54,22 +53,20 @@ export const CounterValue = forwardRef<HTMLSpanElement, CounterValueProps>(
           duration,
           ease: 'power2.out',
           onUpdate: () => {
-            if (spanRef.current) {
-              spanRef.current.textContent = `${prefix}${obj.value.toFixed(decimals)}${suffix}`;
-            }
+            setDisplayValue(obj.value);
           },
         });
       }, spanRef);
 
       return () => ctx.revert();
-    }, [value, decimals, prefix, suffix, duration, enableAnimation, spanRef]);
+    }, [value, duration, enableAnimation]);
 
     return (
       <span
         ref={spanRef}
         className={cn('tabular-nums', className)}
       >
-        {prefix}{value.toFixed(decimals)}{suffix}
+        {prefix}{displayValue.toFixed(decimals)}{suffix}
       </span>
     );
   }
