@@ -30,6 +30,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Plus, Pencil, Trash2, Settings, Battery, Wifi } from 'lucide-react';
+import { GlassCard } from '@/components/layout/glass-card';
+import { AnimatedPageWrapper, StaggeredGrid } from '@/components/layout/animated-page-wrapper';
+import { GradientText } from '@/components/animations';
+import { useStaggerAnimation } from '@/hooks/use-gsap';
 
 interface Device {
   id: string;
@@ -225,28 +229,28 @@ export function DeviceManagement({ restaurantId }: DeviceManagementProps) {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      ACTIVE: { color: 'bg-green-100 text-green-700', label: 'Active' },
-      INACTIVE: { color: 'bg-gray-100 text-gray-700', label: 'Inactive' },
-      LOW_BATTERY: { color: 'bg-yellow-100 text-yellow-700', label: 'Low Battery' },
-      OFFLINE: { color: 'bg-red-100 text-red-700', label: 'Offline' },
-      MAINTENANCE: { color: 'bg-blue-100 text-blue-700', label: 'Maintenance' },
+      ACTIVE: { variant: 'success' as const, label: 'Active', pulse: false },
+      INACTIVE: { variant: 'secondary' as const, label: 'Inactive', pulse: false },
+      LOW_BATTERY: { variant: 'warning' as const, label: 'Low Battery', pulse: true },
+      OFFLINE: { variant: 'critical' as const, label: 'Offline', pulse: true },
+      MAINTENANCE: { variant: 'default' as const, label: 'Maintenance', pulse: false },
     };
 
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.ACTIVE;
-    return <Badge className={config.color}>{config.label}</Badge>;
+    return <Badge variant={config.variant} pulse={config.pulse}>{config.label}</Badge>;
   };
 
   const getDeviceTypeBadge = (type: string) => {
     const typeConfig = {
-      TEMP: { color: 'bg-blue-100 text-blue-700', label: 'Temperature' },
-      HUMIDITY: { color: 'bg-cyan-100 text-cyan-700', label: 'Humidity' },
-      DOOR: { color: 'bg-purple-100 text-purple-700', label: 'Door' },
-      PLUG: { color: 'bg-orange-100 text-orange-700', label: 'Smart Plug' },
-      MOTION: { color: 'bg-pink-100 text-pink-700', label: 'Motion' },
+      TEMP: { variant: 'default' as const, label: 'Temperature' },
+      HUMIDITY: { variant: 'glass' as const, label: 'Humidity' },
+      DOOR: { variant: 'secondary' as const, label: 'Door' },
+      PLUG: { variant: 'outline' as const, label: 'Smart Plug' },
+      MOTION: { variant: 'default' as const, label: 'Motion' },
     };
 
     const config = typeConfig[type as keyof typeof typeConfig] || typeConfig.TEMP;
-    return <Badge className={config.color}>{config.label}</Badge>;
+    return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
   if (isLoading) {
@@ -261,75 +265,78 @@ export function DeviceManagement({ restaurantId }: DeviceManagementProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <AnimatedPageWrapper animation="fade" className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold">Device Management</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-3xl font-bold">
+            <GradientText variant="primary">Device Management</GradientText>
+          </h2>
+          <p className="text-muted-foreground mt-1">
             Manage sensors and IoT devices for this restaurant
           </p>
         </div>
-        <Button onClick={handleAddDevice} className="gap-2">
+        <Button onClick={handleAddDevice} variant="gradient" className="gap-2">
           <Plus className="h-4 w-4" />
           Add Device
         </Button>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
+      <StaggeredGrid cols={4}>
+        <GlassCard>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Devices</p>
-                <p className="text-2xl font-bold">{devices.length}</p>
+                <p className="text-3xl font-bold">{devices.length}</p>
               </div>
-              <Settings className="h-8 w-8 text-muted-foreground" />
+              <Settings className="h-10 w-10 text-muted-foreground opacity-50" />
             </div>
           </CardContent>
-        </Card>
-        <Card>
+        </GlassCard>
+        <GlassCard>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Active</p>
-                <p className="text-2xl font-bold text-green-600">
+                <p className="text-3xl font-bold text-emerald-600">
                   {devices.filter(d => d.status === 'ACTIVE').length}
                 </p>
               </div>
             </div>
           </CardContent>
-        </Card>
-        <Card>
+        </GlassCard>
+        <GlassCard>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Offline</p>
-                <p className="text-2xl font-bold text-red-600">
+                <p className="text-3xl font-bold text-rose-600">
                   {devices.filter(d => d.status === 'OFFLINE').length}
                 </p>
               </div>
+              <Wifi className="h-10 w-10 text-rose-500 opacity-50" />
             </div>
           </CardContent>
-        </Card>
-        <Card>
+        </GlassCard>
+        <GlassCard>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Low Battery</p>
-                <p className="text-2xl font-bold text-yellow-600">
+                <p className="text-3xl font-bold text-amber-600">
                   {devices.filter(d => d.status === 'LOW_BATTERY').length}
                 </p>
               </div>
-              <Battery className="h-8 w-8 text-yellow-500" />
+              <Battery className="h-10 w-10 text-amber-500 opacity-50" />
             </div>
           </CardContent>
-        </Card>
-      </div>
+        </GlassCard>
+      </StaggeredGrid>
 
       {/* Device List */}
-      <Card>
+      <GlassCard>
         <CardHeader>
           <CardTitle>All Devices</CardTitle>
           <CardDescription>
@@ -362,8 +369,12 @@ export function DeviceManagement({ restaurantId }: DeviceManagementProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {devices.map((device) => (
-                    <TableRow key={device.id}>
+                  {devices.map((device, index) => (
+                    <TableRow
+                      key={device.id}
+                      className="hover:bg-muted/50 transition-all duration-300 hover:scale-[1.01] hover:shadow-md stagger-item"
+                      style={{ animationDelay: `${index * 0.05}s` }}
+                    >
                       <TableCell className="font-medium">
                         {device.name}
                         <div className="text-xs text-muted-foreground mt-1">
@@ -381,7 +392,7 @@ export function DeviceManagement({ restaurantId }: DeviceManagementProps) {
                               device.battery_percent < 50 ? 'text-yellow-500' :
                               'text-green-500'
                             }`} />
-                            <span className="text-sm">{device.battery_percent}%</span>
+                            <span className="text-sm font-medium">{device.battery_percent}%</span>
                           </div>
                         ) : (
                           <span className="text-muted-foreground">-</span>
@@ -410,6 +421,7 @@ export function DeviceManagement({ restaurantId }: DeviceManagementProps) {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleEditDevice(device)}
+                            className="hover:scale-110 transition-transform"
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -417,7 +429,7 @@ export function DeviceManagement({ restaurantId }: DeviceManagementProps) {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDeleteDevice(device.id)}
-                            className="text-destructive hover:text-destructive"
+                            className="text-destructive hover:text-destructive hover:scale-110 transition-transform"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -430,11 +442,11 @@ export function DeviceManagement({ restaurantId }: DeviceManagementProps) {
             </div>
           )}
         </CardContent>
-      </Card>
+      </GlassCard>
 
       {/* Add Device Modal */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] glass-card">
           <DialogHeader>
             <DialogTitle>Add New Device</DialogTitle>
             <DialogDescription>
@@ -583,7 +595,7 @@ export function DeviceManagement({ restaurantId }: DeviceManagementProps) {
 
       {/* Edit Device Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] glass-card">
           <DialogHeader>
             <DialogTitle>Edit Device</DialogTitle>
             <DialogDescription>
@@ -676,12 +688,12 @@ export function DeviceManagement({ restaurantId }: DeviceManagementProps) {
             <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSaveDevice}>
+            <Button onClick={handleSaveDevice} variant="gradient">
               Save Changes
             </Button>
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </AnimatedPageWrapper>
   );
 }
