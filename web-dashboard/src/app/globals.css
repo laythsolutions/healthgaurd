@@ -4,6 +4,9 @@
 
 @layer base {
   :root {
+    --sidebar-width: 280px;
+    --sidebar-collapsed-width: 72px;
+    --topbar-height: 64px;
     --background: 240 10% 98%;
     --foreground: 240 10% 10%;
     --card: 0 0% 100%;
@@ -358,6 +361,52 @@
   /* Floating animation */
   .floating {
     animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+
+  @keyframes gradient-shift {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      opacity: 1;
+      box-shadow: 0 0 5px rgba(244, 63, 94, 0.3);
+    }
+    50% {
+      opacity: 0.8;
+      box-shadow: 0 0 20px rgba(244, 63, 94, 0.6);
+    }
+  }
+
+  /* Stagger animation base state */
+  .stagger-item {
+    opacity: 0;
   }
 
   /* Ripple effect for buttons */
