@@ -11,7 +11,7 @@
  * Cache names are versioned so old caches are pruned on activation.
  */
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const STATIC_CACHE  = `static-${CACHE_VERSION}`;
 const PAGE_CACHE    = `pages-${CACHE_VERSION}`;
 

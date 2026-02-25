@@ -41,8 +41,10 @@ export default async function RootLayout({
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
         </NextIntlClientProvider>
-        {/* Service worker registration — enables offline caching for restaurant grade pages */}
-        <script dangerouslySetInnerHTML={{ __html: SW_SCRIPT }} />
+        {/* Service worker registration disabled in dev — enable in production builds */}
+        {process.env.NODE_ENV === 'production' && (
+          <script dangerouslySetInnerHTML={{ __html: SW_SCRIPT }} />
+        )}
       </body>
     </html>
   );
