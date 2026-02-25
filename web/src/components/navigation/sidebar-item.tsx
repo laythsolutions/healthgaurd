@@ -36,12 +36,12 @@ export function SidebarItem({ item, isExpanded }: SidebarItemProps) {
               theme.activeItemGlow,
               'border-l-[3px]',
               theme.activeItemBorder,
-              'text-white'
+              'text-gray-900 font-semibold'
             )
           : cn(
-              'border-l-[3px] border-l-transparent text-white/60',
+              'border-l-[3px] border-l-transparent text-gray-500',
               theme.hoverBg,
-              'hover:text-white'
+              'hover:text-gray-900'
             )
       )}
     >
@@ -50,7 +50,7 @@ export function SidebarItem({ item, isExpanded }: SidebarItemProps) {
           'h-5 w-5 shrink-0 transition-all duration-200',
           isActive
             ? theme.iconColor
-            : 'text-white/50 group-hover:text-white/80 group-hover:scale-110'
+            : 'text-gray-400 group-hover:text-gray-600 group-hover:scale-110'
         )}
       />
       {isExpanded && (

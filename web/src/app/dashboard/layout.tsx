@@ -2,7 +2,6 @@
 
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/hooks/use-sidebar';
-import { AnimatedBackground } from '@/components/layout';
 import { Sidebar, Topbar, MobileSidebar } from '@/components/navigation';
 
 export default function DashboardLayout({
@@ -13,9 +12,7 @@ export default function DashboardLayout({
   const { isExpanded } = useSidebar();
 
   return (
-    <div className="min-h-screen relative">
-      {/* Shared animated background */}
-      <AnimatedBackground variant="gradient" />
+    <div className="min-h-screen bg-gray-50 relative">
 
       {/* Desktop sidebar */}
       <Sidebar />

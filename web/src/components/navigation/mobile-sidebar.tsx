@@ -46,20 +46,20 @@ export function MobileSidebar() {
           <TooltipProvider>
             <SidebarBrand isExpanded={true} />
 
-            <Separator className="bg-white/10 mx-3" />
+            <Separator className="bg-gray-100 mx-3" />
 
             <ScrollArea className="flex-1 py-2">
               {sections.map((section, index) => (
                 <div key={index} onClick={() => setMobileOpen(false)}>
                   {index > 0 && (
-                    <Separator className="bg-white/10 mx-4 my-2" />
+                    <Separator className="bg-gray-100 mx-4 my-2" />
                   )}
                   <SidebarSection section={section} isExpanded={true} />
                 </div>
               ))}
             </ScrollArea>
 
-            <Separator className="bg-white/10 mx-3" />
+            <Separator className="bg-gray-100 mx-3" />
 
             <SidebarUser isExpanded={true} />
           </TooltipProvider>

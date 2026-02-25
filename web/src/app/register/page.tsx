@@ -7,16 +7,13 @@ import { ShieldCheck, User, Mail, Lock, Eye, EyeOff, Loader2, ChevronDown } from
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 const ROLES = [
-  { value: 'ADMIN', label: 'Admin — Full platform access' },
-  { value: 'MANAGER', label: 'Manager — Restaurant management' },
-  { value: 'STAFF', label: 'Staff — Day-to-day operations' },
+  { value: 'ADMIN',     label: 'Admin — Full platform access' },
+  { value: 'MANAGER',   label: 'Manager — Restaurant management' },
+  { value: 'STAFF',     label: 'Staff — Day-to-day operations' },
   { value: 'INSPECTOR', label: 'Inspector — Health inspection tasks' },
 ] as const;
 
-const INPUT_STYLE = {
-  background: 'rgba(7,18,16,0.8)',
-  border: '1px solid rgba(16,185,129,0.15)',
-} as const;
+const INPUT_CLS = 'w-full py-2.5 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
@@ -30,27 +27,12 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  function focusStyle(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) {
-    e.currentTarget.style.border = '1px solid rgba(16,185,129,0.5)';
-    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(16,185,129,0.08)';
-  }
-  function blurStyle(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) {
-    e.currentTarget.style.border = '1px solid rgba(16,185,129,0.15)';
-    e.currentTarget.style.boxShadow = 'none';
-  }
-
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
 
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters');
-      return;
-    }
+    if (password !== confirmPassword) { setError('Passwords do not match'); return; }
+    if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
 
     setLoading(true);
     try {
@@ -62,13 +44,7 @@ export default function RegisterPage() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        const firstError =
-          data.email?.[0] ||
-          data.password?.[0] ||
-          data.detail ||
-          data.non_field_errors?.[0] ||
-          'Registration failed';
-        throw new Error(firstError);
+        throw new Error(data.email?.[0] || data.password?.[0] || data.detail || data.non_field_errors?.[0] || 'Registration failed');
       }
 
       setSuccess(true);
@@ -81,20 +57,14 @@ export default function RegisterPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: '#040a08' }}>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="w-full max-w-md text-center">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4" style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)' }}>
-            <ShieldCheck className="w-7 h-7 text-emerald-400" />
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-600 mb-4 shadow-sm">
+            <ShieldCheck className="w-6 h-6 text-white" />
           </div>
-          <h2 className="text-xl font-bold text-white mb-2">Account created!</h2>
-          <p className="text-sm mb-6" style={{ color: '#6b8f7e' }}>
-            Your account is ready. Sign in to access the dashboard.
-          </p>
-          <Link
-            href="/login"
-            className="inline-flex items-center justify-center rounded-lg text-white text-sm font-semibold px-6 py-2.5 transition-all"
-            style={{ background: '#059669' }}
-          >
+          <h2 className="text-xl font-black text-gray-900 mb-2">Account created!</h2>
+          <p className="text-gray-500 text-sm mb-6">Your account is ready. Sign in to access the dashboard.</p>
+          <Link href="/login" className="inline-flex items-center justify-center rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-6 py-2.5 transition-colors shadow-sm">
             Go to Sign In
           </Link>
         </div>
@@ -103,115 +73,69 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: '#040a08' }}>
-      {/* Background glows */}
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[700px] rounded-full blur-3xl" style={{ background: 'rgba(16,185,129,0.06)' }} />
-        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full blur-3xl" style={{ background: 'rgba(20,184,166,0.04)' }} />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-emerald-50 opacity-60 blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-md">
         {/* Brand */}
         <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4" style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)' }}>
-            <ShieldCheck className="w-7 h-7 text-emerald-400" />
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-600 mb-4 shadow-sm">
+            <ShieldCheck className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-white">HealthGuard</h1>
-          <p className="mt-1 text-sm" style={{ color: '#6b8f7e' }}>Food Safety Intelligence Platform</p>
+          <h1 className="text-2xl font-black text-gray-900">HealthGuard</h1>
+          <p className="mt-1 text-sm text-gray-500">Food Safety Intelligence Platform</p>
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl p-8 shadow-2xl" style={{ background: 'rgba(10,26,22,0.9)', border: '1px solid rgba(16,185,129,0.12)' }}>
-          <h2 className="text-lg font-semibold text-white mb-1">Create an account</h2>
-          <p className="text-sm mb-6" style={{ color: '#6b8f7e' }}>Fill in your details to get started</p>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+          <h2 className="text-lg font-bold text-gray-900 mb-1">Create an account</h2>
+          <p className="text-sm text-gray-500 mb-6">Fill in your details to get started</p>
 
           {error && (
-            <div className="mb-5 rounded-lg px-4 py-3" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
-              <span className="text-rose-400 text-sm">{error}</span>
+            <div className="mb-5 rounded-lg bg-red-50 border border-red-100 px-4 py-3">
+              <span className="text-red-700 text-sm">{error}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Full name */}
             <div>
-              <label className="block text-sm font-medium mb-1.5" style={{ color: '#a3c4b5' }}>Full name</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Full name</label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: '#4b7a65' }} />
-                <input
-                  type="text"
-                  required
-                  autoComplete="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Jane Smith"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg text-white text-sm placeholder-[#3d6b59] outline-none transition-all"
-                  style={INPUT_STYLE}
-                  onFocus={focusStyle}
-                  onBlur={blurStyle}
-                />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <input type="text" required autoComplete="name" value={name} onChange={e => setName(e.target.value)} placeholder="Jane Smith" className={`${INPUT_CLS} pl-10 pr-4`} />
               </div>
             </div>
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium mb-1.5" style={{ color: '#a3c4b5' }}>Email address</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email address</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: '#4b7a65' }} />
-                <input
-                  type="email"
-                  required
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg text-white text-sm placeholder-[#3d6b59] outline-none transition-all"
-                  style={INPUT_STYLE}
-                  onFocus={focusStyle}
-                  onBlur={blurStyle}
-                />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <input type="email" required autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" className={`${INPUT_CLS} pl-10 pr-4`} />
               </div>
             </div>
 
             {/* Role */}
             <div>
-              <label className="block text-sm font-medium mb-1.5" style={{ color: '#a3c4b5' }}>Role</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Role</label>
               <div className="relative">
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: '#4b7a65' }} />
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  className="w-full appearance-none pl-4 pr-10 py-2.5 rounded-lg text-white text-sm outline-none transition-all cursor-pointer"
-                  style={{ ...INPUT_STYLE, background: 'rgba(7,18,16,0.9)' }}
-                  onFocus={focusStyle}
-                  onBlur={blurStyle}
-                >
-                  {ROLES.map((r) => (
-                    <option key={r.value} value={r.value} style={{ background: '#0a1a16' }}>
-                      {r.label}
-                    </option>
-                  ))}
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <select value={role} onChange={e => setRole(e.target.value)} className={`${INPUT_CLS} appearance-none pl-4 pr-10 cursor-pointer`}>
+                  {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
               </div>
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-medium mb-1.5" style={{ color: '#a3c4b5' }}>Password</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: '#4b7a65' }} />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  autoComplete="new-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Min. 8 characters"
-                  className="w-full pl-10 pr-10 py-2.5 rounded-lg text-white text-sm placeholder-[#3d6b59] outline-none transition-all"
-                  style={INPUT_STYLE}
-                  onFocus={focusStyle}
-                  onBlur={blurStyle}
-                />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors" style={{ color: '#4b7a65' }}>
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <input type={showPassword ? 'text' : 'password'} required autoComplete="new-password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 8 characters" className={`${INPUT_CLS} pl-10 pr-10`} />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
@@ -219,22 +143,11 @@ export default function RegisterPage() {
 
             {/* Confirm password */}
             <div>
-              <label className="block text-sm font-medium mb-1.5" style={{ color: '#a3c4b5' }}>Confirm password</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirm password</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: '#4b7a65' }} />
-                <input
-                  type={showConfirm ? 'text' : 'password'}
-                  required
-                  autoComplete="new-password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-10 pr-10 py-2.5 rounded-lg text-white text-sm placeholder-[#3d6b59] outline-none transition-all"
-                  style={INPUT_STYLE}
-                  onFocus={focusStyle}
-                  onBlur={blurStyle}
-                />
-                <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors" style={{ color: '#4b7a65' }}>
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <input type={showConfirm ? 'text' : 'password'} required autoComplete="new-password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••" className={`${INPUT_CLS} pl-10 pr-10`} />
+                <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
                   {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
@@ -244,31 +157,19 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="mt-2 w-full flex items-center justify-center gap-2 rounded-lg text-white text-sm font-semibold py-2.5 transition-all"
-              style={{ background: loading ? 'rgba(16,185,129,0.4)' : '#059669' }}
-              onMouseOver={e => { if (!loading) e.currentTarget.style.background = '#10b981'; }}
-              onMouseOut={e => { if (!loading) e.currentTarget.style.background = '#059669'; }}
+              className="mt-2 w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-600/50 text-white text-sm font-semibold py-2.5 transition-colors shadow-sm"
             >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Creating account…
-                </>
-              ) : (
-                'Create account'
-              )}
+              {loading ? (<><Loader2 className="w-4 h-4 animate-spin" />Creating account…</>) : 'Create account'}
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm" style={{ color: '#6b8f7e' }}>
+          <p className="mt-6 text-center text-sm text-gray-500">
             Already have an account?{' '}
-            <Link href="/login" className="font-medium text-emerald-400 hover:text-emerald-300 transition-colors">
-              Sign in
-            </Link>
+            <Link href="/login" className="text-emerald-600 hover:text-emerald-700 font-semibold transition-colors">Sign in</Link>
           </p>
         </div>
 
-        <p className="mt-6 text-center text-xs" style={{ color: '#2d4a3e' }}>
+        <p className="mt-6 text-center text-xs text-gray-400">
           &copy; {new Date().getFullYear()} HealthGuard — Open-source under Apache 2.0
         </p>
       </div>

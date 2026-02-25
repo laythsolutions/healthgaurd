@@ -4,7 +4,6 @@ import {
   Users,
   BarChart3,
   Bell,
-  CreditCard,
   Settings,
   HelpCircle,
   Activity,
@@ -43,7 +42,6 @@ export const navConfig: Record<UserRole, NavSection[]> = {
         { label: 'Users', href: '/dashboard/admin/users', icon: Users },
         { label: 'Analytics', href: '/dashboard/admin/analytics', icon: BarChart3 },
         { label: 'Alerts', href: '/dashboard/admin/alerts', icon: Bell, badge: '3' },
-        { label: 'Billing', href: '/dashboard/admin/billing', icon: CreditCard },
       ],
     },
     {

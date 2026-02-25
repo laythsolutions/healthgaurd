@@ -42,7 +42,7 @@ export function SidebarUser({ isExpanded }: SidebarUserProps) {
       </Avatar>
       {isExpanded && (
         <div className="flex-1 overflow-hidden">
-          <p className="truncate text-sm font-semibold text-white">
+          <p className="truncate text-sm font-semibold text-gray-900">
             {user.name}
           </p>
           <span
@@ -56,7 +56,7 @@ export function SidebarUser({ isExpanded }: SidebarUserProps) {
         </div>
       )}
       {isExpanded && (
-        <button className="rounded-lg p-1.5 text-white/40 transition-colors hover:bg-white/10 hover:text-white">
+        <button className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700">
           <LogOut className="h-4 w-4" />
         </button>
       )}

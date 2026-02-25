@@ -23,7 +23,7 @@ export function Sidebar() {
     <TooltipProvider>
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-40 flex flex-col border-r border-white/5 transition-all duration-300 ease-in-out hidden md:flex',
+          'fixed inset-y-0 left-0 z-40 flex flex-col border-r border-gray-100 transition-all duration-300 ease-in-out hidden md:flex',
           isExpanded ? 'w-[var(--sidebar-width)]' : 'w-[var(--sidebar-collapsed-width)]'
         )}
       >
@@ -49,21 +49,21 @@ export function Sidebar() {
           {/* Brand */}
           <SidebarBrand isExpanded={isExpanded} />
 
-          <Separator className="bg-white/10 mx-3" />
+          <Separator className="bg-gray-100 mx-3" />
 
           {/* Nav sections */}
           <ScrollArea className="flex-1 py-2">
             {sections.map((section, index) => (
               <div key={index}>
                 {index > 0 && (
-                  <Separator className="bg-white/10 mx-4 my-2" />
+                  <Separator className="bg-gray-100 mx-4 my-2" />
                 )}
                 <SidebarSection section={section} isExpanded={isExpanded} />
               </div>
             ))}
           </ScrollArea>
 
-          <Separator className="bg-white/10 mx-3" />
+          <Separator className="bg-gray-100 mx-3" />
 
           {/* User */}
           <SidebarUser isExpanded={isExpanded} />
@@ -73,7 +73,7 @@ export function Sidebar() {
             <button
               onClick={toggle}
               className={cn(
-                'flex h-9 w-full items-center justify-center rounded-lg border border-white/10 text-white/50 transition-all duration-200 hover:bg-white/10 hover:text-white',
+                'flex h-9 w-full items-center justify-center rounded-lg border border-gray-200 text-gray-400 transition-all duration-200 hover:bg-gray-50 hover:text-gray-700',
               )}
             >
               <ChevronLeft

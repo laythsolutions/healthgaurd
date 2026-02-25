@@ -46,12 +46,12 @@ export function Topbar() {
   return (
     <header
       className={cn(
-        'sticky top-0 z-30 flex h-[var(--topbar-height)] items-center gap-4 border-b px-4 md:px-6 glass-dark'
+        'sticky top-0 z-30 flex h-[var(--topbar-height)] items-center gap-4 border-b border-gray-100 bg-white px-4 md:px-6 shadow-sm'
       )}
     >
       {/* Mobile hamburger */}
       <button
-        className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:hidden"
+        className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 md:hidden"
         onClick={() => setMobileOpen(true)}
       >
         <Menu className="h-5 w-5" />
@@ -72,7 +72,7 @@ export function Topbar() {
       {/* Right side actions */}
       <div className="flex items-center gap-3">
         {/* Notification bell */}
-        <button className="relative rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+        <button className="relative rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900">
           <Bell className="h-5 w-5" />
           <span className="absolute right-1.5 top-1.5 flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
@@ -83,7 +83,7 @@ export function Topbar() {
         {/* User dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-2 rounded-lg p-1.5 transition-colors hover:bg-muted">
+            <button className="flex items-center gap-2 rounded-lg p-1.5 transition-colors hover:bg-gray-100">
               <Avatar className="h-8 w-8">
                 <AvatarFallback
                   className={cn(
@@ -94,7 +94,7 @@ export function Topbar() {
                   {user.initials}
                 </AvatarFallback>
               </Avatar>
-              <span className="hidden text-sm font-medium md:block">
+              <span className="hidden text-sm font-medium text-gray-700 md:block">
                 {user.name}
               </span>
             </button>

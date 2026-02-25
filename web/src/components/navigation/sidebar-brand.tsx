@@ -29,10 +29,10 @@ export function SidebarBrand({ isExpanded }: SidebarBrandProps) {
           isExpanded ? 'w-auto opacity-100' : 'w-0 opacity-0'
         )}
       >
-        <h1 className="text-lg font-bold text-white whitespace-nowrap">
+        <h1 className="text-lg font-bold text-gray-900 whitespace-nowrap">
           HealthGuard
         </h1>
-        <p className="text-[11px] font-medium text-white/50 whitespace-nowrap uppercase tracking-wider">
+        <p className="text-[11px] font-medium text-gray-400 whitespace-nowrap uppercase tracking-wider">
           Compliance Platform
         </p>
       </div>
