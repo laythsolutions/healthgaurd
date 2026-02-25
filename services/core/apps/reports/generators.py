@@ -644,7 +644,7 @@ class ComplianceReportGenerator:
                     'category': 'Temperature Control',
                     'priority': 'High',
                     'title': 'Address Temperature Violations',
-                    'description': f"{len(temp_alerts)} temperature alerts recorded. Review cooling, heating, and holding practices. Ensure all staff understand the danger zone (41°F - 135°F). Implement more frequent temperature monitoring log entries.'
+                    'description': f"{len(temp_alerts)} temperature alerts recorded. Review cooling, heating, and holding practices. Ensure all staff understand the danger zone (41°F - 135°F). Implement more frequent temperature monitoring log entries."
                 })
 
         # Based on inspection history

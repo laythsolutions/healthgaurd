@@ -11,8 +11,11 @@ django-timescaledb==0.2.0
 
 # API & Serialization
 djangorestframework-simplejwt==5.3.1
+drf-yasg==1.21.7
 PyYAML==6.0.1
 python-dotenv==1.0.1
+django-health-check==3.18.3
+mozilla-django-oidc==4.0.0
 
 # MQTT & IoT
 paho-mqtt==1.6.1
@@ -28,7 +31,13 @@ daphne==4.0.0
 structlog==24.1.0
 
 # Security
-cryptography==42.0.5
+cryptography>=42.0.5
+pyotp==2.9.0
+qrcode[pil]==8.2
+
+# PDF & Email
+reportlab==4.4.10
+sendgrid==6.11.0
 
 # HTTP & API
 requests==2.31.0

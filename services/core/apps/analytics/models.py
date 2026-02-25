@@ -18,7 +18,7 @@ class ComplianceReport(models.Model):
         COMPLETED = 'COMPLETED', 'Completed'
         FAILED = 'FAILED', 'Failed'
 
-    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='reports')
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='analytics_reports')
     report_type = models.CharField(max_length=20, choices=ReportType.choices)
     status = models.CharField(max_length=20, choices=ReportStatus.choices, default=ReportStatus.GENERATING)
 
@@ -42,7 +42,7 @@ class ComplianceReport(models.Model):
     completed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        db_table = 'compliance_reports'
+        db_table = 'analytics_compliance_reports'
         indexes = [
             models.Index(fields=['restaurant', '-created_at']),
             models.Index(fields=['report_type', 'period_start']),

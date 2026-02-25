@@ -67,6 +67,7 @@ class User(AbstractUser):
     restaurants = models.ManyToManyField(
         'restaurants.Restaurant',
         through='RestaurantAccess',
+        through_fields=('user', 'restaurant'),
         related_name='users'
     )
     profile_image = models.URLField(blank=True)

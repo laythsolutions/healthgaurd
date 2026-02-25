@@ -8,7 +8,7 @@ done
 echo "PostgreSQL is ready."
 
 echo "Running migrations..."
-python manage.py migrate --run-syncdb
+python manage.py migrate
 
 echo "Collecting static files..."
 python manage.py collectstatic --noinput 2>/dev/null || true

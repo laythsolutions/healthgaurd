@@ -43,7 +43,7 @@ class ComplianceReport(models.Model):
 
     # Report file
     report_url = models.URLField(max_length=500, blank=True)
-    file_size_bytes = models.BigInteger(null=True, blank=True)
+    file_size_bytes = models.BigIntegerField(null=True, blank=True)
     file_pages = models.IntegerField(default=0)
 
     # Email delivery

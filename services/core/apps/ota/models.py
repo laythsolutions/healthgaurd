@@ -153,7 +153,7 @@ class GatewayBackup(models.Model):
     # Backup info
     backup_path = models.CharField(max_length=255)
     version = models.CharField(max_length=50)  # Version backed up
-    size_bytes = models.BigInteger()
+    size_bytes = models.BigIntegerField()
 
     # Backup contents
     includes_database = models.BooleanField(default=True)

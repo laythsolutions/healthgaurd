@@ -104,7 +104,7 @@
 
   "search": {
     "results_count": "{count} restaurant{count, plural, one {} other {s}} found",
-    "no_results": "No restaurants found matching "{query}".",
+    "no_results": "No restaurants found matching \"{query}\".",
     "filters": {
       "state": "State",
       "grade": "Grade",

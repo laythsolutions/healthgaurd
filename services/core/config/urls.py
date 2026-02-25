@@ -5,25 +5,28 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework import permissions
-from drf_yasg.views import get_schema_view
-from drf_yasg import openapi
 
-# API Documentation
-schema_view = get_schema_view(
-    openapi.Info(
-        title="[PROJECT_NAME] API",
-        default_version='v1',
-        description=(
-            "Open-source food safety intelligence platform. "
-            "Connects restaurant inspections, IoT sensor monitoring, "
-            "recall tracking, and clinical outbreak detection."
+try:
+    from drf_yasg.views import get_schema_view
+    from drf_yasg import openapi
+    schema_view = get_schema_view(
+        openapi.Info(
+            title="[PROJECT_NAME] API",
+            default_version='v1',
+            description=(
+                "Open-source food safety intelligence platform. "
+                "Connects restaurant inspections, IoT sensor monitoring, "
+                "recall tracking, and clinical outbreak detection."
+            ),
+            contact=openapi.Contact(email="api@[project-domain]"),
+            license=openapi.License(name="Apache 2.0"),
         ),
-        contact=openapi.Contact(email="api@[project-domain]"),
-        license=openapi.License(name="Apache 2.0"),
-    ),
-    public=True,
-    permission_classes=[permissions.AllowAny],
-)
+        public=True,
+        permission_classes=[permissions.AllowAny],
+    )
+    _yasg_available = True
+except ImportError:
+    _yasg_available = False
 
 urlpatterns = [
     # Admin
@@ -46,17 +49,28 @@ urlpatterns = [
     path('api/v1/inspections/', include('apps.inspections.urls')),
     path('api/v1/clinical/', include('apps.clinical.urls')),
 
-    # API Documentation
-    path('api/docs/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
-    path('api/redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
-
-    # OIDC SSO for health department users (mozilla-django-oidc)
-    # Only active when OIDC_RP_CLIENT_ID env var is set
-    path('oidc/', include('mozilla_django_oidc.urls')),
-
-    # Health check
-    path('health/', include('health_check.urls')),
 ]
+
+# API Documentation (requires drf-yasg: pip install drf-yasg)
+if _yasg_available:
+    urlpatterns += [
+        path('api/docs/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+        path('api/redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+    ]
+
+# OIDC SSO — only active when mozilla-django-oidc is installed
+try:
+    import mozilla_django_oidc  # noqa: F401
+    urlpatterns += [path('oidc/', include('mozilla_django_oidc.urls'))]
+except ImportError:
+    pass
+
+# Health check — only active when django-health-check is installed
+try:
+    import health_check  # noqa: F401
+    urlpatterns += [path('health/', include('health_check.urls'))]
+except ImportError:
+    pass
 
 # Serve media files in development
 if settings.DEBUG:
