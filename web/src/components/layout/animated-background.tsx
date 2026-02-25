@@ -49,19 +49,19 @@ export function AnimatedBackground({
 
   const blobs = [
     {
-      className: 'absolute w-96 h-96 bg-violet-500/30 rounded-full blur-3xl',
+      className: 'absolute w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl',
       style: { top: '10%', left: '10%' },
     },
     {
-      className: 'absolute w-80 h-80 bg-indigo-500/30 rounded-full blur-3xl',
+      className: 'absolute w-80 h-80 bg-blue-600/8 rounded-full blur-3xl',
       style: { top: '60%', right: '10%' },
     },
     {
-      className: 'absolute w-72 h-72 bg-cyan-500/30 rounded-full blur-3xl',
+      className: 'absolute w-72 h-72 bg-slate-600/10 rounded-full blur-3xl',
       style: { bottom: '10%', left: '30%' },
     },
     {
-      className: 'absolute w-64 h-64 bg-blue-500/20 rounded-full blur-3xl',
+      className: 'absolute w-64 h-64 bg-indigo-500/6 rounded-full blur-3xl',
       style: { top: '30%', right: '30%' },
     },
   ];
@@ -89,7 +89,7 @@ export function AnimatedBackground({
 
       {/* Mesh gradient overlay */}
       {variant === 'mesh' && (
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-600/20 via-indigo-600/20 to-blue-600/20" />
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/10 via-slate-700/10 to-blue-600/10" />
       )}
 
       {/* Subtle noise texture */}

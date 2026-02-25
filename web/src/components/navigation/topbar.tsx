@@ -105,7 +105,16 @@ export function Topbar() {
             <DropdownMenuItem>Profile</DropdownMenuItem>
             <DropdownMenuItem>Settings</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Log out</DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                document.cookie = 'access_token=; path=/; max-age=0';
+                document.cookie = 'refresh_token=; path=/; max-age=0';
+                window.location.href = '/login';
+              }}
+              className="text-rose-400 focus:text-rose-400"
+            >
+              Log out
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
