@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.[project-domain]/v1/recalls.json",
+  "title": "Recall",
+  "description": "A food product recall event from FDA, USDA FSIS, or manual entry",
+  "type": "object",
+  "x-sensitivity": "public",
+  "required": ["id", "source", "external_id", "title", "status"],
+  "properties": {
+    "id": { "type": "string" },
+    "source": {
+      "type": "string",
+      "enum": ["fda", "usda_fsis", "cdc", "manual"]
+    },
+    "external_id": { "type": "string" },
+    "title": { "type": "string", "maxLength": 500 },
+    "reason": { "type": "string" },
+    "hazard_type": {
+      "type": "string",
+      "description": "e.g. 'Salmonella', 'Undeclared allergen', 'Foreign material'"
+    },
+    "classification": {
+      "type": "string",
+      "enum": ["I", "II", "III", ""],
+      "description": "FDA/USDA recall class"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "completed", "terminated", "ongoing"]
+    },
+    "recalling_firm": { "type": "string" },
+    "firm_city": { "type": "string" },
+    "firm_state": { "type": "string" },
+    "firm_country": { "type": "string" },
+    "distribution_pattern": { "type": "string" },
+    "affected_states": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 2, "maxLength": 2 },
+      "description": "Two-letter state codes"
+    },
+    "recall_initiation_date": { "type": ["string", "null"], "format": "date" },
+    "termination_date": { "type": ["string", "null"], "format": "date" },
+    "voluntary_mandated": { "type": "string" },
+    "product_quantity": { "type": "string" },
+    "products": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/recall_product" }
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "last_synced_at": { "type": ["string", "null"], "format": "date-time" }
+  },
+  "$defs": {
+    "recall_product": {
+      "type": "object",
+      "required": ["product_description"],
+      "properties": {
+        "product_description": { "type": "string" },
+        "brand_name": { "type": "string" },
+        "upc_codes": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "lot_numbers": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "best_by_dates": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "package_sizes": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "code_info": { "type": "string" }
+      }
+    }
+  },
+  "additionalProperties": false
+}

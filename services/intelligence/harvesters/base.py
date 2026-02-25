@@ -22,10 +22,12 @@ class InspectionRecord:
     zip_code: str
     inspection_date: datetime
     score: Optional[int] = None
+    grade: Optional[str] = None
     violations: List[Dict] = None
     risk_level: Optional[str] = None
     inspector_name: Optional[str] = None
     facility_type: Optional[str] = None
+    borough: Optional[str] = None  # NYC boroughs, etc.
     raw_data: Dict = None
 
     def __post_init__(self):

@@ -1,0 +1,1469 @@
+openapi: "3.1.0"
+
+info:
+  title: "healthgaurd API"
+  version: "1.0.0"
+  description: |
+    Open-source food safety intelligence platform.
+
+    **Base URL:** `https://api.[project-domain]/api/v1`
+
+    ## Authentication
+
+    Most endpoints require a JWT bearer token obtained via `/auth/token/`.
+    Institution-facing clinical endpoints use a static `X-Institution-Key` header
+    issued to participating healthcare institutions.
+    Public endpoints (`/public/*`) require no authentication.
+
+    ## Rate limits
+
+    | Audience | Limit |
+    |----------|-------|
+    | Anonymous (`/public/*`) | 100 req / hour |
+    | Authenticated users | 2 000 req / hour |
+    | Institution API key | 500 req / day |
+
+    ## Versioning
+
+    Every API response includes an `API-Version: 1` header.
+    Breaking changes will be deployed under `/api/v2/` with a deprecation notice
+    added to v1 responses at least 90 days before sunset.
+
+  contact:
+    name: "healthgaurd Community"
+    url: "https://github.com/laythsolutions/healthgaurd"
+  license:
+    name: Apache 2.0
+    url: "https://www.apache.org/licenses/LICENSE-2.0"
+
+servers:
+  - url: "http://localhost:8000/api/v1"
+    description: Local development
+  - url: "https://api.[project-domain]/api/v1"
+    description: Production
+
+tags:
+  - name: public
+    description: Unauthenticated read-only public data
+  - name: auth
+    description: Authentication and account management
+  - name: devices
+    description: IoT device registration and telemetry
+  - name: alerts
+    description: Compliance alerts and notification rules
+  - name: sensors
+    description: Sensor readings and aggregates
+  - name: clinical
+    description: Anonymized clinical case submission and outbreak investigations
+  - name: recalls
+    description: FDA / USDA recall feed and acknowledgment workflow
+  - name: inspections
+    description: Health department inspection records and scheduling
+
+# ---------------------------------------------------------------------------
+# Security schemes
+# ---------------------------------------------------------------------------
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Obtain a token pair via `POST /auth/token/`.
+        Pass the access token in the `Authorization: Bearer <token>` header.
+    InstitutionKey:
+      type: apiKey
+      in: header
+      name: X-Institution-Key
+      description: |
+        Static key issued to participating healthcare institutions for
+        anonymous case submission. Contact the platform operators to
+        request a key.
+
+  # ---------------------------------------------------------------------------
+  # Reusable schemas
+  # ---------------------------------------------------------------------------
+
+  schemas:
+
+    # ---- Pagination wrapper -------------------------------------------------
+    PaginatedList:
+      type: object
+      properties:
+        count:   { type: integer }
+        next:    { type: ["string", "null"], format: uri }
+        previous: { type: ["string", "null"], format: uri }
+        results: { type: array, items: {} }
+
+    # ---- Error --------------------------------------------------------------
+    Error:
+      type: object
+      properties:
+        detail: { type: string }
+      required: [detail]
+
+    # ---- Auth ---------------------------------------------------------------
+    TokenPair:
+      type: object
+      properties:
+        access:  { type: string, description: "Short-lived JWT (1 hour)" }
+        refresh: { type: string, description: "Long-lived refresh token (7 days)" }
+      required: [access, refresh]
+
+    # ---- Restaurant (public) ------------------------------------------------
+    RestaurantPublic:
+      type: object
+      properties:
+        id:                 { type: integer }
+        name:               { type: string }
+        address:            { type: string }
+        city:               { type: string }
+        state:              { type: string }
+        zip_code:           { type: string }
+        current_grade:      { type: string, enum: [A, B, C, P, X, ""] }
+        grade_score:        { type: ["number", "null"] }
+        last_inspection_date: { type: ["string", "null"], format: date }
+        latitude:           { type: ["number", "null"] }
+        longitude:          { type: ["number", "null"] }
+        cuisine:            { type: string }
+        establishment_type: { type: string }
+        phone:              { type: string }
+        website:            { type: ["string", "null"], format: uri }
+        is_active:          { type: boolean }
+
+    # ---- Advisory (public) --------------------------------------------------
+    AdvisoryPublic:
+      type: object
+      properties:
+        id:                 { type: integer }
+        title:              { type: string }
+        status:             { type: string, enum: [open, active, closed, archived] }
+        pathogen:           { type: string }
+        suspected_vehicle:  { type: string }
+        geographic_scope:   { type: string, description: "Geohash cell label (~40 km)" }
+        cluster_start_date: { type: ["string", "null"], format: date }
+        cluster_end_date:   { type: ["string", "null"], format: date }
+        case_count:         { type: integer, minimum: 3 }
+        cluster_score:      { type: ["number", "null"] }
+        auto_generated:     { type: boolean }
+        opened_at:          { type: string, format: date-time }
+
+    # ---- Device -------------------------------------------------------------
+    Device:
+      type: object
+      properties:
+        id:                { type: integer }
+        device_id:         { type: string }
+        name:              { type: string }
+        device_type:       { type: string, enum: [TEMP, HUMIDITY, DOOR, PLUG, MOTION] }
+        status:            { type: string, enum: [ACTIVE, INACTIVE, LOW_BATTERY, OFFLINE, MAINTENANCE] }
+        restaurant:        { type: integer }
+        battery_percent:   { type: ["integer", "null"], minimum: 0, maximum: 100 }
+        rssi:              { type: ["integer", "null"] }
+        last_seen:         { type: ["string", "null"], format: date-time }
+        firmware_version:  { type: string }
+        reporting_interval: { type: integer, description: "Seconds between readings" }
+        failure_risk_score: { type: ["number", "null"], minimum: 0, maximum: 100 }
+        created_at:        { type: string, format: date-time }
+
+    DeviceHealth:
+      type: object
+      properties:
+        device_id:         { type: string }
+        name:              { type: string }
+        status:            { type: string }
+        online:            { type: boolean }
+        last_seen:         { type: ["string", "null"], format: date-time }
+        minutes_since_seen: { type: ["number", "null"] }
+        battery_percent:   { type: ["integer", "null"] }
+        rssi:              { type: ["integer", "null"] }
+        firmware_version:  { type: string }
+        calibration:
+          type: ["object", "null"]
+          properties:
+            calibrated_at:     { type: string, format: date-time }
+            offset:            { type: number }
+            days_since:        { type: integer }
+            needs_calibration: { type: boolean }
+        risk:
+          type: object
+          properties:
+            failure_risk_score: { type: number, minimum: 0, maximum: 100 }
+            risk_level:         { type: string, enum: [critical, high, medium, low] }
+            lookback_days:      { type: integer }
+
+    DeviceRisk:
+      type: object
+      properties:
+        device_id:          { type: integer }
+        failure_risk_score: { type: number, minimum: 0, maximum: 100 }
+        risk_level:         { type: string, enum: [critical, high, medium, low] }
+        signals:
+          type: object
+          description: Scores per signal (0–100 each)
+          properties:
+            temperature_variance: { type: number }
+            warming_trend:        { type: number }
+            breach_rate:          { type: number }
+            gap_penalty:          { type: number }
+            battery:              { type: number }
+            signal_strength:      { type: number }
+        lookback_days: { type: integer }
+        data_points:   { type: integer }
+
+    # ---- Alert --------------------------------------------------------------
+    Alert:
+      type: object
+      properties:
+        id:          { type: integer }
+        alert_type:  { type: string }
+        severity:    { type: string, enum: [CRITICAL, WARNING, INFO] }
+        status:      { type: string, enum: [ACTIVE, ACKNOWLEDGED, RESOLVED, FALSE_POSITIVE] }
+        title:       { type: string }
+        message:     { type: string }
+        restaurant:  { type: integer }
+        device:      { type: ["integer", "null"] }
+        temperature: { type: ["number", "null"] }
+        notification_sent: { type: boolean }
+        created_at:  { type: string, format: date-time }
+        acknowledged_at: { type: ["string", "null"], format: date-time }
+        resolved_at:     { type: ["string", "null"], format: date-time }
+
+    # ---- Clinical case ------------------------------------------------------
+    ClinicalCaseSubmission:
+      type: object
+      required: [subject_hash, illness_status]
+      properties:
+        subject_hash:    { type: string, minLength: 64, maxLength: 64 }
+        age_range:       { type: string, pattern: "^(\\d{1,2}-\\d{1,2}|80\\+)$" }
+        sex:             { type: string, enum: [M, F, O, ""] }
+        geohash:         { type: string, minLength: 4, maxLength: 5 }
+        zip3:            { type: string, minLength: 3, maxLength: 3 }
+        illness_status:  { type: string, enum: [suspected, confirmed, ruled_out] }
+        onset_date:      { type: ["string", "null"], format: date }
+        symptoms:        { type: array, items: { type: string } }
+        pathogen:        { type: string }
+        hospitalized:    { type: ["boolean", "null"] }
+        exposures:
+          type: array
+          items:
+            type: object
+            properties:
+              exposure_type:    { type: string }
+              exposure_date:    { type: ["string", "null"], format: date }
+              geohash:          { type: string }
+              food_items:       { type: array, items: { type: string } }
+              linked_recall_id: { type: ["integer", "null"] }
+
+    # ---- Outbreak investigation ---------------------------------------------
+    OutbreakInvestigation:
+      type: object
+      properties:
+        id:                { type: integer }
+        title:             { type: string }
+        status:            { type: string, enum: [open, active, closed, archived] }
+        pathogen:          { type: string }
+        suspected_vehicle: { type: string }
+        geographic_scope:  { type: string }
+        cluster_start_date: { type: ["string", "null"], format: date }
+        cluster_end_date:   { type: ["string", "null"], format: date }
+        case_count_at_open: { type: integer }
+        cluster_score:     { type: ["number", "null"] }
+        auto_generated:    { type: boolean }
+        opened_at:         { type: string, format: date-time }
+        notes:             { type: string }
+
+    InvestigationStats:
+      type: object
+      description: Epidemiological analysis for an investigation
+      properties:
+        investigation_id: { type: integer }
+        case_count:       { type: integer }
+        confirmed_count:  { type: integer }
+        hospitalized_count: { type: integer }
+        symptom_frequencies:
+          type: object
+          additionalProperties: { type: number }
+          description: Symptom → proportion of cases (0.0–1.0)
+        exposure_analysis:
+          type: array
+          items:
+            type: object
+            properties:
+              exposure_type: { type: string }
+              exposed_cases: { type: integer }
+              odds_ratio:    { type: ["number", "null"] }
+              ci_lower:      { type: ["number", "null"] }
+              ci_upper:      { type: ["number", "null"] }
+              p_value:       { type: ["number", "null"] }
+
+    TracebackGraph:
+      type: object
+      properties:
+        nodes:
+          type: array
+          items:
+            type: object
+            properties:
+              id:    { type: string }
+              type:  { type: string, enum: [investigation, case, exposure, restaurant, recall] }
+              label: { type: string }
+              data:  { type: object }
+        edges:
+          type: array
+          items:
+            type: object
+            properties:
+              source: { type: string }
+              target: { type: string }
+              label:  { type: string }
+        summary:
+          type: object
+          properties:
+            cases:       { type: integer }
+            exposures:   { type: integer }
+            restaurants: { type: integer }
+            recalls:     { type: integer }
+        privacy_note: { type: string }
+
+    # ---- Recall -------------------------------------------------------------
+    Recall:
+      type: object
+      properties:
+        id:              { type: integer }
+        source:          { type: string, enum: [fda, usda_fsis, cdc, manual] }
+        external_id:     { type: string }
+        title:           { type: string }
+        reason:          { type: string }
+        hazard_type:     { type: string }
+        classification:  { type: string, enum: [I, II, III, ""] }
+        status:          { type: string, enum: [active, completed, terminated, ongoing] }
+        recalling_firm:  { type: string }
+        firm_state:      { type: string }
+        affected_states: { type: array, items: { type: string } }
+        recall_initiation_date: { type: ["string", "null"], format: date }
+        termination_date:       { type: ["string", "null"], format: date }
+        products:
+          type: array
+          items:
+            type: object
+            properties:
+              product_description: { type: string }
+              brand_name:  { type: string }
+              upc_codes:   { type: array, items: { type: string } }
+              lot_numbers: { type: array, items: { type: string } }
+        created_at:      { type: string, format: date-time }
+        last_synced_at:  { type: ["string", "null"], format: date-time }
+
+    RecallAcknowledgment:
+      type: object
+      properties:
+        id:           { type: integer }
+        recall:       { type: integer }
+        restaurant:   { type: integer }
+        status:       { type: string, enum: [PENDING, ACKNOWLEDGED, REMEDIATED, DISPUTED, NA] }
+        notes:        { type: string }
+        remediated_at: { type: ["string", "null"], format: date-time }
+        created_at:   { type: string, format: date-time }
+        updated_at:   { type: string, format: date-time }
+
+    # ---- Inspection ---------------------------------------------------------
+    Inspection:
+      type: object
+      properties:
+        id:             { type: integer }
+        restaurant:     { type: integer }
+        inspection_date: { type: string, format: date }
+        grade:          { type: string, enum: [A, B, C, P, X, ""] }
+        score:          { type: ["number", "null"] }
+        inspection_type: { type: string }
+        inspector_name:  { type: string }
+        violations:
+          type: array
+          items:
+            type: object
+            properties:
+              code:        { type: string }
+              description: { type: string }
+              severity:    { type: string, enum: [critical, major, minor] }
+              corrected:   { type: boolean }
+        status:         { type: string }
+        created_at:     { type: string, format: date-time }
+
+# ---------------------------------------------------------------------------
+# Paths
+# ---------------------------------------------------------------------------
+
+paths:
+
+  # ==========================================================================
+  # PUBLIC — no auth required
+  # ==========================================================================
+
+  /public/restaurants/:
+    get:
+      tags: [public]
+      summary: List public restaurant profiles
+      description: |
+        Search and browse restaurant profiles with grades and inspection history.
+        Results are paginated (default 20, max 100).
+      parameters:
+        - in: query
+          name: search
+          schema: { type: string }
+          description: Full-text search against name, address, cuisine
+        - in: query
+          name: state
+          schema: { type: string, minLength: 2, maxLength: 2 }
+        - in: query
+          name: grade
+          schema: { type: string, enum: [A, B, C, P, X] }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 20, maximum: 100 }
+        - in: query
+          name: offset
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: Paginated restaurant list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedList"
+                  - properties:
+                      results:
+                        type: array
+                        items: { $ref: "#/components/schemas/RestaurantPublic" }
+      security: []
+
+  /public/restaurants/{id}/:
+    get:
+      tags: [public]
+      summary: Restaurant detail with inspection history
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Restaurant detail
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/RestaurantPublic"
+                  - properties:
+                      inspection_history:
+                        type: array
+                        items: { $ref: "#/components/schemas/Inspection" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+      security: []
+
+  /public/advisories/:
+    get:
+      tags: [public]
+      summary: Outbreak advisory feed
+      description: |
+        Returns active and open outbreak investigations that have crossed the
+        public disclosure threshold (≥ 3 confirmed/probable cases).
+
+        Results are cached for 5 minutes server-side.
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, enum: [open, active, closed, all] }
+          description: "Default: open,active"
+        - in: query
+          name: pathogen
+          schema: { type: string }
+          description: Filter by pathogen substring (case-insensitive)
+        - in: query
+          name: limit
+          schema: { type: integer, default: 20, maximum: 50 }
+      responses:
+        "200":
+          description: Advisory list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:        { type: integer }
+                  min_cases:    { type: integer }
+                  privacy_note: { type: string }
+                  results:
+                    type: array
+                    items: { $ref: "#/components/schemas/AdvisoryPublic" }
+      security: []
+
+  # ==========================================================================
+  # AUTH
+  # ==========================================================================
+
+  /auth/token/:
+    post:
+      tags: [auth]
+      summary: Obtain JWT token pair
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string, format: password }
+      responses:
+        "200":
+          description: Token pair
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TokenPair" }
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+      security: []
+
+  /auth/token/refresh/:
+    post:
+      tags: [auth]
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh]
+              properties:
+                refresh: { type: string }
+      responses:
+        "200":
+          description: New access token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access: { type: string }
+        "401":
+          description: Refresh token invalid or expired
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+      security: []
+
+  /auth/token/verify/:
+    post:
+      tags: [auth]
+      summary: Verify a token is still valid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+      responses:
+        "200":
+          description: Token is valid (empty body)
+        "401":
+          description: Token invalid or expired
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+      security: []
+
+  /auth/mfa/setup/:
+    post:
+      tags: [auth]
+      summary: Generate TOTP secret and QR code URI for MFA enrollment
+      responses:
+        "200":
+          description: TOTP setup info
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  secret:      { type: string }
+                  qr_code_uri: { type: string }
+                  issuer:      { type: string }
+      security:
+        - BearerAuth: []
+
+  /auth/mfa/verify/:
+    post:
+      tags: [auth]
+      summary: Verify a TOTP code and mark MFA as enabled
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string, minLength: 6, maxLength: 6 }
+      responses:
+        "200":
+          description: MFA verified
+        "400":
+          description: Invalid or expired TOTP code
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+      security:
+        - BearerAuth: []
+
+  /auth/password-reset/:
+    post:
+      tags: [auth]
+      summary: Request a password reset email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        "200":
+          description: Reset email sent (always returns 200 to prevent enumeration)
+      security: []
+
+  /auth/password-reset/confirm/:
+    post:
+      tags: [auth]
+      summary: Complete password reset with token from email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, new_password]
+              properties:
+                token:        { type: string }
+                new_password: { type: string, format: password, minLength: 8 }
+      responses:
+        "200":
+          description: Password updated
+        "400":
+          description: Token invalid, expired, or password too weak
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+      security: []
+
+  # ==========================================================================
+  # DEVICES
+  # ==========================================================================
+
+  /devices/:
+    get:
+      tags: [devices]
+      summary: List devices
+      parameters:
+        - in: query
+          name: restaurant
+          schema: { type: integer }
+        - in: query
+          name: device_type
+          schema: { type: string, enum: [TEMP, HUMIDITY, DOOR, PLUG, MOTION] }
+        - in: query
+          name: status
+          schema: { type: string, enum: [ACTIVE, INACTIVE, LOW_BATTERY, OFFLINE, MAINTENANCE] }
+      responses:
+        "200":
+          description: Device list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedList"
+                  - properties:
+                      results:
+                        type: array
+                        items: { $ref: "#/components/schemas/Device" }
+      security:
+        - BearerAuth: []
+
+    post:
+      tags: [devices]
+      summary: Register a new device
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Device" }
+      responses:
+        "201":
+          description: Device created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Device" }
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+      security:
+        - BearerAuth: []
+
+  /devices/{id}/:
+    get:
+      tags: [devices]
+      summary: Device detail
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Device detail with calibration history
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Device" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+      security:
+        - BearerAuth: []
+
+    patch:
+      tags: [devices]
+      summary: Update device (partial)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Device" }
+      responses:
+        "200":
+          description: Updated device
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Device" }
+      security:
+        - BearerAuth: []
+
+    delete:
+      tags: [devices]
+      summary: Deregister device
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deleted
+      security:
+        - BearerAuth: []
+
+  /devices/{id}/health/:
+    get:
+      tags: [devices]
+      summary: Device health status
+      description: |
+        Returns a unified health snapshot: battery, signal, online status,
+        calibration freshness, and 14-day failure risk score — in a single call.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Health snapshot
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeviceHealth" }
+      security:
+        - BearerAuth: []
+
+  /devices/{id}/risk/:
+    get:
+      tags: [devices]
+      summary: Equipment failure risk score
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: days
+          schema: { type: integer, default: 14, minimum: 1, maximum: 90 }
+      responses:
+        "200":
+          description: Risk breakdown
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeviceRisk" }
+      security:
+        - BearerAuth: []
+
+  /devices/risk/restaurant/{restaurant_id}/:
+    get:
+      tags: [devices]
+      summary: Restaurant-level equipment risk summary
+      parameters:
+        - in: path
+          name: restaurant_id
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: days
+          schema: { type: integer, default: 14 }
+      responses:
+        "200":
+          description: Aggregated risk across all active devices
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  restaurant_id:      { type: integer }
+                  device_count:       { type: integer }
+                  highest_risk_score: { type: number }
+                  highest_risk_level: { type: string }
+                  critical_devices:   { type: array, items: { type: integer } }
+                  devices:            { type: array, items: { $ref: "#/components/schemas/DeviceRisk" } }
+      security:
+        - BearerAuth: []
+
+  /devices/{id}/calibrate/:
+    post:
+      tags: [devices]
+      summary: Record a calibration reading
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [actual_temp, sensor_temp, offset]
+              properties:
+                actual_temp: { type: number }
+                sensor_temp: { type: number }
+                offset:      { type: number }
+                notes:       { type: string }
+      responses:
+        "201":
+          description: Calibration recorded
+      security:
+        - BearerAuth: []
+
+  /devices/{id}/calibrations/:
+    get:
+      tags: [devices]
+      summary: Calibration history for a device
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Calibration records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    calibrated_at: { type: string, format: date-time }
+                    actual_temp:   { type: number }
+                    sensor_temp:   { type: number }
+                    offset:        { type: number }
+                    notes:         { type: string }
+      security:
+        - BearerAuth: []
+
+  /devices/low_battery/:
+    get:
+      tags: [devices]
+      summary: All active devices with battery < 20%
+      responses:
+        "200":
+          description: Low-battery device list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Device" }
+      security:
+        - BearerAuth: []
+
+  /devices/offline/:
+    get:
+      tags: [devices]
+      summary: Devices that haven't reported in over 1 hour
+      responses:
+        "200":
+          description: Offline device list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Device" }
+      security:
+        - BearerAuth: []
+
+  # ==========================================================================
+  # ALERTS
+  # ==========================================================================
+
+  /alerts/:
+    get:
+      tags: [alerts]
+      summary: List alerts
+      parameters:
+        - in: query
+          name: restaurant
+          schema: { type: integer }
+        - in: query
+          name: status
+          schema: { type: string, enum: [ACTIVE, ACKNOWLEDGED, RESOLVED, FALSE_POSITIVE] }
+        - in: query
+          name: severity
+          schema: { type: string, enum: [CRITICAL, WARNING, INFO] }
+      responses:
+        "200":
+          description: Alert list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedList"
+                  - properties:
+                      results:
+                        type: array
+                        items: { $ref: "#/components/schemas/Alert" }
+      security:
+        - BearerAuth: []
+
+  /alerts/{id}/:
+    get:
+      tags: [alerts]
+      summary: Alert detail
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Alert
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Alert" }
+      security:
+        - BearerAuth: []
+
+    patch:
+      tags: [alerts]
+      summary: Acknowledge or resolve an alert
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:               { type: string, enum: [ACKNOWLEDGED, RESOLVED, FALSE_POSITIVE] }
+                acknowledgement_notes: { type: string }
+                resolution_notes:      { type: string }
+      responses:
+        "200":
+          description: Updated alert
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Alert" }
+      security:
+        - BearerAuth: []
+
+  # ==========================================================================
+  # CLINICAL
+  # ==========================================================================
+
+  /clinical/cases/:
+    get:
+      tags: [clinical]
+      summary: List anonymized clinical cases (health department)
+      parameters:
+        - in: query
+          name: pathogen
+          schema: { type: string }
+        - in: query
+          name: illness_status
+          schema: { type: string, enum: [suspected, confirmed, ruled_out] }
+        - in: query
+          name: onset_after
+          schema: { type: string, format: date }
+        - in: query
+          name: geohash_prefix
+          schema: { type: string, maxLength: 4 }
+      responses:
+        "200":
+          description: Case list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedList"
+                  - properties:
+                      results:
+                        type: array
+                        items: { $ref: "#/components/schemas/ClinicalCaseSubmission" }
+      security:
+        - BearerAuth: []
+
+    post:
+      tags: [clinical]
+      summary: Submit an anonymized clinical case
+      description: |
+        Used by participating healthcare institutions (EDs, urgent care, labs)
+        to report anonymized foodborne illness cases.
+
+        **Auth:** `X-Institution-Key` header (institution API key, not JWT).
+
+        **Privacy requirements enforced server-side:**
+        - `subject_hash` must be HMAC-SHA256 of the patient identifier — never raw MRN
+        - `geohash` may be at most precision-5 (~5 km)
+        - Age must be submitted as `age_range` (decade band), not exact age
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ClinicalCaseSubmission" }
+      responses:
+        "201":
+          description: Case accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:      { type: integer }
+                  message: { type: string }
+        "400":
+          description: Validation error (e.g. geohash too precise)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401":
+          description: Institution key missing or invalid
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+      security:
+        - InstitutionKey: []
+
+  /clinical/investigations/:
+    get:
+      tags: [clinical]
+      summary: List outbreak investigations (health department)
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, enum: [open, active, closed, archived] }
+        - in: query
+          name: pathogen
+          schema: { type: string }
+      responses:
+        "200":
+          description: Investigation list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedList"
+                  - properties:
+                      results:
+                        type: array
+                        items: { $ref: "#/components/schemas/OutbreakInvestigation" }
+      security:
+        - BearerAuth: []
+
+  /clinical/investigations/{id}/:
+    get:
+      tags: [clinical]
+      summary: Outbreak investigation detail
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Investigation detail
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OutbreakInvestigation" }
+      security:
+        - BearerAuth: []
+
+  /clinical/investigations/{id}/stats/:
+    get:
+      tags: [clinical]
+      summary: Epidemiological statistics for an investigation
+      description: |
+        Returns symptom frequencies, exposure attack rates, and odds ratios
+        with 95% confidence intervals (Woolf method) for each exposure type.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InvestigationStats" }
+      security:
+        - BearerAuth: []
+
+  /clinical/investigations/{id}/traceback/:
+    get:
+      tags: [clinical]
+      summary: Supply chain traceback graph
+      description: |
+        Builds a directed graph linking the investigation to individual cases,
+        exposures, nearby restaurants, and matched active recalls.
+        Suitable for rendering in a force-directed graph UI.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Traceback graph
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TracebackGraph" }
+      security:
+        - BearerAuth: []
+
+  /clinical/stats/geohash/:
+    get:
+      tags: [clinical]
+      summary: Cluster statistics by geohash prefix
+      parameters:
+        - in: query
+          name: prefix
+          required: true
+          schema: { type: string, minLength: 2, maxLength: 4 }
+          description: "Geohash prefix to aggregate within (precision 2–4)"
+      responses:
+        "200":
+          description: Geohash cluster stats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  prefix:      { type: string }
+                  case_count:  { type: integer }
+                  investigations: { type: array, items: { $ref: "#/components/schemas/OutbreakInvestigation" } }
+      security:
+        - BearerAuth: []
+
+  # ==========================================================================
+  # RECALLS
+  # ==========================================================================
+
+  /recalls/:
+    get:
+      tags: [recalls]
+      summary: List recalls
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, enum: [active, completed, terminated, ongoing] }
+        - in: query
+          name: source
+          schema: { type: string, enum: [fda, usda_fsis, cdc, manual] }
+        - in: query
+          name: state
+          schema: { type: string, minLength: 2, maxLength: 2 }
+          description: Filter to recalls affecting this state
+        - in: query
+          name: hazard_type
+          schema: { type: string }
+      responses:
+        "200":
+          description: Recall list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedList"
+                  - properties:
+                      results:
+                        type: array
+                        items: { $ref: "#/components/schemas/Recall" }
+      security:
+        - BearerAuth: []
+
+  /recalls/{id}/:
+    get:
+      tags: [recalls]
+      summary: Recall detail with products and acknowledgment summary
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Recall detail
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Recall" }
+      security:
+        - BearerAuth: []
+
+  /recalls/acknowledgments/:
+    get:
+      tags: [recalls]
+      summary: List recall acknowledgments
+      parameters:
+        - in: query
+          name: recall
+          schema: { type: integer }
+        - in: query
+          name: restaurant
+          schema: { type: integer }
+        - in: query
+          name: status
+          schema: { type: string, enum: [PENDING, ACKNOWLEDGED, REMEDIATED, DISPUTED, NA] }
+      responses:
+        "200":
+          description: Acknowledgment list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedList"
+                  - properties:
+                      results:
+                        type: array
+                        items: { $ref: "#/components/schemas/RecallAcknowledgment" }
+      security:
+        - BearerAuth: []
+
+  /recalls/acknowledgments/{id}/:
+    patch:
+      tags: [recalls]
+      summary: Update acknowledgment status
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, enum: [ACKNOWLEDGED, REMEDIATED, DISPUTED, NA] }
+                notes:  { type: string }
+      responses:
+        "200":
+          description: Updated acknowledgment
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RecallAcknowledgment" }
+      security:
+        - BearerAuth: []
+
+  # ==========================================================================
+  # INSPECTIONS
+  # ==========================================================================
+
+  /inspections/:
+    get:
+      tags: [inspections]
+      summary: List inspections
+      parameters:
+        - in: query
+          name: restaurant
+          schema: { type: integer }
+        - in: query
+          name: grade
+          schema: { type: string, enum: [A, B, C, P, X] }
+        - in: query
+          name: after
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Inspection list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedList"
+                  - properties:
+                      results:
+                        type: array
+                        items: { $ref: "#/components/schemas/Inspection" }
+      security:
+        - BearerAuth: []
+
+    post:
+      tags: [inspections]
+      summary: Record a new inspection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Inspection" }
+      responses:
+        "201":
+          description: Inspection created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Inspection" }
+      security:
+        - BearerAuth: []
+
+  /inspections/{id}/:
+    get:
+      tags: [inspections]
+      summary: Inspection detail
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Inspection
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Inspection" }
+      security:
+        - BearerAuth: []
+
+  /inspections/schedule/:
+    get:
+      tags: [inspections]
+      summary: List scheduled inspections
+      parameters:
+        - in: query
+          name: restaurant
+          schema: { type: integer }
+        - in: query
+          name: status
+          schema: { type: string, enum: [scheduled, completed, cancelled, overdue] }
+      responses:
+        "200":
+          description: Schedule list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedList"
+                  - properties:
+                      results:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:              { type: integer }
+                            restaurant:      { type: integer }
+                            scheduled_date:  { type: string, format: date }
+                            inspector_name:  { type: string }
+                            status:          { type: string }
+                            notes:           { type: string }
+      security:
+        - BearerAuth: []
+
+    post:
+      tags: [inspections]
+      summary: Schedule an inspection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [restaurant, scheduled_date]
+              properties:
+                restaurant:     { type: integer }
+                scheduled_date: { type: string, format: date }
+                inspector_name: { type: string }
+                notes:          { type: string }
+      responses:
+        "201":
+          description: Schedule created
+      security:
+        - BearerAuth: []
+
+  /inspections/export/:
+    get:
+      tags: [inspections]
+      summary: Export inspections as CSV
+      description: |
+        Returns a CSV file suitable for importing into state health department
+        data systems. Includes all inspections matching the query filters.
+      parameters:
+        - in: query
+          name: restaurant
+          schema: { type: integer }
+        - in: query
+          name: after
+          schema: { type: string, format: date }
+        - in: query
+          name: before
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+      security:
+        - BearerAuth: []

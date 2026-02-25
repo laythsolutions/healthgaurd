@@ -26,6 +26,8 @@ class Alert(models.Model):
         LOW_BATTERY = 'LOW_BATTERY', 'Low Battery'
         DEVICE_OFFLINE = 'DEVICE_OFFLINE', 'Device Offline'
         MANUAL_LOG_REQUIRED = 'MANUAL_LOG', 'Manual Log Required'
+        FRYER_OIL_DEGRADED = 'FRYER_OIL', 'Fryer Oil Quality Alert'
+        WATER_LEAK = 'WATER_LEAK', 'Water Leak Detected'
 
     # Alert details
     alert_type = models.CharField(max_length=30, choices=AlertType.choices)

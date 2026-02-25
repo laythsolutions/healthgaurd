@@ -1,0 +1,37 @@
+name: Security Vulnerability (Public Disclosure Only)
+description: >
+  Use this ONLY for disclosures AFTER a fix has already been released.
+  To report an unfixed vulnerability, follow the private process in SECURITY.md.
+labels: ["security"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Stop — Is this vulnerability already fixed?
+
+        **If the vulnerability is NOT yet fixed**, please **do not use this form**.
+        Report it privately following the instructions in [SECURITY.md](../../SECURITY.md).
+
+        This form is only for documenting publicly-known issues after a patch has been released.
+
+  - type: input
+    id: advisory
+    attributes:
+      label: Security advisory or CVE (if assigned)
+      placeholder: "e.g. GHSA-xxxx-xxxx-xxxx or CVE-2026-XXXXX"
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Summary
+      description: Brief description of the vulnerability that was fixed.
+    validations:
+      required: true
+
+  - type: input
+    id: fixed_version
+    attributes:
+      label: Fixed in version / commit
+      placeholder: "e.g. v1.2.3 or abc1234"
+    validations:
+      required: true

@@ -12,10 +12,11 @@ import shutil
 import subprocess
 import logging
 import requests
+import tempfile
 import time
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.backends import default_backend
@@ -32,14 +33,14 @@ class OTAUpdateClient:
         self.config = config
         self.base_dir = Path('/opt/restaurant-gateway')
         self.backups_dir = self.base_dir / 'backups'
-        self.temp_dir = Path('/tmp/ota')
+        self.temp_dir = Path(tempfile.mkdtemp(prefix='ota_'))
+        os.chmod(self.temp_dir, 0o700)
         self.public_key_path = config['public_key_path']
         self.gateway_id = config['gateway_id']
         self.api_url = config['api_url']
 
         # Create directories
         self.backups_dir.mkdir(parents=True, exist_ok=True)
-        self.temp_dir.mkdir(parents=True, exist_ok=True)
 
         self.current_version = self._get_current_version()
         logger.info(f"OTA Client initialized - Current version: {self.current_version}")
@@ -291,13 +292,19 @@ class OTAUpdateClient:
                 merged = {**existing, **change['content']}
                 file_path.write_text(json.dumps(merged, indent=2))
 
-    def _run_migrations(self, migrations: List[str]):
+    def _run_migrations(self, migrations: list):
         """Run database migrations"""
 
+        # Allowlist of safe migration commands
+        allowed_prefixes = ['docker', 'python', 'alembic']
+
         for migration in migrations:
+            args = migration.split()
+            if not args or args[0] not in allowed_prefixes:
+                logger.warning(f"Skipping disallowed migration command: {migration}")
+                continue
             logger.info(f"Running migration: {migration}")
-            # Execute migration command
-            subprocess.run(migration.split(), check=True, shell=True)
+            subprocess.run(args, check=True)
 
     def _verify_system_health(self) -> bool:
         """Verify system health after update"""

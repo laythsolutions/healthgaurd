@@ -2,6 +2,7 @@
 
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.utils import timezone
 from datetime import timedelta
@@ -22,6 +23,7 @@ class AlertViewSet(viewsets.ModelViewSet):
 
     queryset = Alert.objects.select_related('restaurant', 'device', 'acknowledged_by', 'resolved_by').all()
     serializer_class = AlertSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -170,6 +172,7 @@ class AlertRuleViewSet(viewsets.ModelViewSet):
 
     queryset = AlertRule.objects.select_related('restaurant', 'device').all()
     serializer_class = AlertRuleSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -207,6 +210,7 @@ class NotificationLogViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = NotificationLog.objects.select_related('alert').all()
     serializer_class = NotificationLogSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         queryset = super().get_queryset()

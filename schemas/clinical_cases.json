@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.[project-domain]/v1/clinical_cases.json",
+  "title": "ClinicalCase",
+  "description": "An anonymized case of suspected or confirmed foodborne illness. Contains NO personally identifiable information.",
+  "type": "object",
+  "x-sensitivity": "restricted",
+  "x-privacy-note": "All fields in this schema are anonymized. subject_hash is a pseudonymous identifier — not a name, MRN, or contact detail.",
+  "required": ["id", "subject_hash", "illness_status"],
+  "properties": {
+    "id": { "type": "string" },
+    "subject_hash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64,
+      "description": "HMAC-SHA256 pseudonymous identifier. Cannot be reversed to identify the individual."
+    },
+    "age_range": {
+      "type": "string",
+      "pattern": "^(\\d{1,2}-\\d{1,2}|80\\+)$",
+      "description": "10-year age band, e.g. '30-39' or '80+'"
+    },
+    "sex": {
+      "type": "string",
+      "enum": ["M", "F", "O", ""]
+    },
+    "geohash": {
+      "type": "string",
+      "minLength": 4,
+      "maxLength": 5,
+      "description": "Precision-5 geohash (~5 km cell). Never more precise."
+    },
+    "zip3": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 3,
+      "description": "First 3 digits of ZIP code only"
+    },
+    "illness_status": {
+      "type": "string",
+      "enum": ["suspected", "confirmed", "ruled_out"]
+    },
+    "onset_date": {
+      "type": ["string", "null"],
+      "format": "date"
+    },
+    "illness_duration_days": { "type": ["integer", "null"], "minimum": 0 },
+    "symptoms": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Standardized symptom strings, e.g. ['diarrhea', 'vomiting', 'fever', 'bloody_stool']"
+    },
+    "stool_culture_collected": { "type": ["boolean", "null"] },
+    "pathogen": { "type": "string" },
+    "serotype": { "type": "string" },
+    "hospitalized": { "type": ["boolean", "null"] },
+    "icu_admission": { "type": ["boolean", "null"] },
+    "outcome": {
+      "type": "string",
+      "enum": ["recovered", "hospitalized", "ongoing", "deceased", "unknown"]
+    },
+    "investigation_id": {
+      "type": ["string", "null"],
+      "description": "ID of the outbreak investigation this case belongs to, if any"
+    },
+    "exposures": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/exposure" }
+    },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "exposure": {
+      "type": "object",
+      "required": ["exposure_type"],
+      "properties": {
+        "exposure_type": {
+          "type": "string",
+          "enum": ["restaurant", "grocery", "home", "catered", "water", "animal", "person", "unknown"]
+        },
+        "exposure_date": { "type": ["string", "null"], "format": "date" },
+        "geohash": { "type": "string", "maxLength": 6 },
+        "establishment_type": { "type": "string" },
+        "food_items": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Generic food descriptions only — no brand names unless linked to a recall"
+        },
+        "linked_recall_id": { "type": ["string", "null"] },
+        "confidence": { "type": "string", "enum": ["high", "medium", "low"] }
+      }
+    }
+  },
+  "additionalProperties": false
+}

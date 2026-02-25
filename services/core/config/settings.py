@@ -14,6 +14,13 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
+# Production safety: refuse to run with insecure defaults when DEBUG is off
+if not DEBUG and 'dev' in SECRET_KEY:
+    raise RuntimeError(
+        "Refusing to start: SECRET_KEY contains 'dev' while DEBUG=False. "
+        "Set a strong, unique SECRET_KEY for production."
+    )
+
 # Application definition
 DJANGO_APPS = [
     'django.contrib.admin',
@@ -30,6 +37,9 @@ THIRD_PARTY_APPS = [
     'corsheaders',
     'django_filters',
     'channels',
+    # OIDC federation — only loaded when mozilla-django-oidc is installed
+    # pip install mozilla-django-oidc
+    *(['mozilla_django_oidc'] if __import__('importlib.util', fromlist=['find_spec']).find_spec('mozilla_django_oidc') else []),
 ]
 
 LOCAL_APPS = [
@@ -41,6 +51,11 @@ LOCAL_APPS = [
     'apps.analytics',
     'apps.reports',
     'apps.ota',
+    # OSFI: new apps
+    'apps.privacy',
+    'apps.recalls',
+    'apps.inspections',
+    'apps.clinical',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -49,12 +64,15 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'apps.privacy.audit_middleware.DataAccessAuditMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'apps.middleware.TenantMiddleware',
+    'apps.middleware.APIVersionHeaderMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -123,6 +141,18 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
+# Supported languages — used by Django's LocaleMiddleware and API locale headers
+from django.utils.translation import gettext_lazy as _   # noqa: E402
+LANGUAGES = [
+    ('en', _('English')),
+    ('es', _('Spanish')),
+    ('zh-hans', _('Simplified Chinese')),
+    ('vi', _('Vietnamese')),
+    ('ko', _('Korean')),
+    ('tl', _('Filipino')),
+]
+LOCALE_PATHS = [BASE_DIR / 'locale']
+
 # Static files
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
@@ -152,6 +182,19 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 50,
     'DATETIME_FORMAT': '%Y-%m-%dT%H:%M:%S%z',
+    # Rate limiting — applied per-view using throttle_classes or globally on public endpoints
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.ScopedRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon':         '200/hour',   # Unauthenticated public API
+        'user':         '2000/hour',  # Authenticated users (health dept etc.)
+        'public_data':  '100/hour',   # Stricter tier for /api/v1/public/* endpoints
+        'clinical':     '500/day',    # Institution API key submissions
+        'burst':        '30/min',     # Burst protection for all anon requests
+    },
 }
 
 # JWT Settings
@@ -268,6 +311,50 @@ GOOGLE_OAUTH2_CLIENT_SECRET = os.getenv('GOOGLE_OAUTH2_CLIENT_SECRET', '')
 MICROSOFT_OAUTH2_CLIENT_ID = os.getenv('MICROSOFT_OAUTH2_CLIENT_ID', '')
 MICROSOFT_OAUTH2_CLIENT_SECRET = os.getenv('MICROSOFT_OAUTH2_CLIENT_SECRET', '')
 
+# ---------------------------------------------------------------------------
+# OIDC Federation — health department SSO (mozilla-django-oidc)
+# pip install mozilla-django-oidc
+# ---------------------------------------------------------------------------
+# RP (Relying Party) credentials — issued by the health dept's IdP
+OIDC_RP_CLIENT_ID     = os.getenv('OIDC_RP_CLIENT_ID', '')
+OIDC_RP_CLIENT_SECRET = os.getenv('OIDC_RP_CLIENT_SECRET', '')
+
+# OP (OpenID Provider) endpoints — fill in from IdP's discovery document
+OIDC_OP_JWKS_ENDPOINT          = os.getenv('OIDC_OP_JWKS_ENDPOINT', '')
+OIDC_OP_AUTHORIZATION_ENDPOINT = os.getenv('OIDC_OP_AUTHORIZATION_ENDPOINT', '')
+OIDC_OP_TOKEN_ENDPOINT         = os.getenv('OIDC_OP_TOKEN_ENDPOINT', '')
+OIDC_OP_USER_ENDPOINT          = os.getenv('OIDC_OP_USER_ENDPOINT', '')
+
+# Algorithm the IdP uses to sign JWTs (RS256 for Azure AD / Okta)
+OIDC_RP_SIGN_ALGO = os.getenv('OIDC_RP_SIGN_ALGO', 'RS256')
+
+# Scopes to request (openid + email required; groups for role mapping)
+OIDC_RP_SCOPES = os.getenv('OIDC_RP_SCOPES', 'openid email profile groups')
+
+# Redirect users here after successful OIDC login
+LOGIN_REDIRECT_URL  = os.getenv('OIDC_LOGIN_REDIRECT_URL', '/portal/')
+LOGOUT_REDIRECT_URL = os.getenv('OIDC_LOGOUT_REDIRECT_URL', '/')
+
+# Optional: restrict OIDC login to users from a specific email domain
+OIDC_HEALTH_DEPT_DOMAIN = os.getenv('OIDC_HEALTH_DEPT_DOMAIN', '')
+
+# IdP group claim names (customize to match the IdP's token structure)
+OIDC_GROUPS_CLAIM     = os.getenv('OIDC_GROUPS_CLAIM', 'groups')
+OIDC_INSPECTOR_GROUP  = os.getenv('OIDC_INSPECTOR_GROUP', 'HealthDeptInspector')
+OIDC_ADMIN_GROUP      = os.getenv('OIDC_ADMIN_GROUP', 'HealthDeptAdmin')
+
+# Session: re-verify token every 15 minutes
+OIDC_RENEW_ID_TOKEN_EXPIRY_SECONDS = int(
+    os.getenv('OIDC_RENEW_ID_TOKEN_EXPIRY_SECONDS', 900)
+)
+
+# Add the OIDC backend only when credentials are configured
+if OIDC_RP_CLIENT_ID:
+    AUTHENTICATION_BACKENDS = [
+        'django.contrib.auth.backends.ModelBackend',
+        'apps.accounts.oidc.HealthDeptOIDCBackend',
+    ]
+
 # MFA Configuration
 MFA_ISSUER_NAME = os.getenv('MFA_ISSUER_NAME', 'HealthGuard')
 MFA_REQUIRED_FOR_ADMINS = os.getenv('MFA_REQUIRED_FOR_ADMINS', 'True') == 'True'
@@ -275,3 +362,66 @@ MFA_REQUIRED_FOR_ADMINS = os.getenv('MFA_REQUIRED_FOR_ADMINS', 'True') == 'True'
 # Password Reset
 PASSWORD_RESET_TOKEN_EXPIRY_HOURS = int(os.getenv('PASSWORD_RESET_TOKEN_EXPIRY_HOURS', '24'))
 SUPPORT_EMAIL = os.getenv('SUPPORT_EMAIL', 'support@healthguard.com')
+
+# ---------------------------------------------------------------------------
+# Privacy & Anonymization (OSFI)
+# ---------------------------------------------------------------------------
+# REQUIRED in production. Generate with:
+#   python -c "import secrets; print(secrets.token_hex(32))"
+ANONYMIZATION_SALT = os.getenv('ANONYMIZATION_SALT', '')
+
+if not DEBUG and not ANONYMIZATION_SALT:
+    raise RuntimeError(
+        "ANONYMIZATION_SALT must be set in production. "
+        "Generate with: python -c \"import secrets; print(secrets.token_hex(32))\""
+    )
+
+# Intelligence service URL (for inspection record ingestion bridge)
+INTELLIGENCE_SERVICE_URL = os.getenv('INTELLIGENCE_SERVICE_URL', 'http://intelligence:8001')
+
+# Celery Beat schedule
+CELERY_BEAT_SCHEDULE = {
+    # Recall feed synchronization
+    'sync-fda-recalls-nightly': {
+        'task': 'apps.recalls.tasks.sync_fda_recalls',
+        'schedule': 60 * 60 * 24,
+        'kwargs': {'days_back': 7},
+    },
+    'sync-usda-recalls-nightly': {
+        'task': 'apps.recalls.tasks.sync_usda_recalls',
+        'schedule': 60 * 60 * 24,
+        'kwargs': {'days_back': 7},
+    },
+    # Inspection ingest bridge — harvester → core DB
+    'ingest-ca-inspections-nightly': {
+        'task': 'apps.inspections.tasks.ingest_state_inspections',
+        'schedule': 60 * 60 * 24,
+        'kwargs': {'state': 'CA', 'days_back': 1},
+    },
+    'ingest-nyc-inspections-nightly': {
+        'task': 'apps.inspections.tasks.ingest_state_inspections',
+        'schedule': 60 * 60 * 24,
+        'kwargs': {'state': 'NYC', 'days_back': 1},
+    },
+    'ingest-il-inspections-nightly': {
+        'task': 'apps.inspections.tasks.ingest_state_inspections',
+        'schedule': 60 * 60 * 24,
+        'kwargs': {'state': 'IL', 'days_back': 1},
+    },
+    # Cluster detection — Year 3
+    'run-cluster-detection-daily': {
+        'task': 'apps.clinical.tasks.run_cluster_detection',
+        'schedule': 60 * 60 * 24,
+        'kwargs': {'lookback_days': 30},
+    },
+    # Recall acknowledgment sweep — runs every 6 hours
+    'auto-create-acknowledgments': {
+        'task': 'apps.recalls.tasks.auto_create_acknowledgments_for_active',
+        'schedule': 60 * 60 * 6,
+    },
+    # IoT equipment failure risk scoring — nightly
+    'device-risk-scoring-nightly': {
+        'task': 'apps.devices.tasks.update_device_risk_scores',
+        'schedule': 60 * 60 * 24,
+    },
+}

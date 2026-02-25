@@ -822,6 +822,58 @@ async def analyze_violation_patterns(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/v1/harvest/records/{state}")
+async def get_harvest_records(
+    state: str,
+    days_back: int = Query(default=1, ge=1, le=30),
+):
+    """
+    Return full serialized InspectionRecord dicts for a state.
+    Consumed by the core service ingest task — not intended for direct client use.
+    All violation data is included (no truncation).
+    """
+    try:
+        from harvesters.state_harvesters import get_harvester
+
+        harvester = get_harvester(state, config={})
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days_back)
+
+        records = await harvester.harvest(start_date, end_date)
+
+        return {
+            "state": state,
+            "period": {
+                "start": start_date.isoformat(),
+                "end": end_date.isoformat(),
+            },
+            "records_harvested": len(records),
+            "records": [
+                {
+                    "restaurant_name": r.restaurant_name,
+                    "address": r.address,
+                    "city": r.city,
+                    "state": r.state,
+                    "zip_code": r.zip_code,
+                    "inspection_date": r.inspection_date.isoformat(),
+                    "score": r.score,
+                    "grade": r.grade,
+                    "violations": r.violations,
+                    "risk_level": r.risk_level,
+                    "inspector_name": r.inspector_name,
+                    "facility_type": r.facility_type,
+                    "borough": r.borough,
+                    "raw_data": r.raw_data,
+                }
+                for r in records
+            ],
+        }
+
+    except Exception as e:
+        logger.error(f"Error fetching records for {state}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # Run with: uvicorn api.main:app --reload
 if __name__ == "__main__":
     import uvicorn

@@ -17,10 +17,31 @@ class SensorReading(models.Model):
 
     # Door sensor
     door_open = models.BooleanField(null=True, blank=True)
+    # Cumulative seconds the door has been open in the current open event.
+    # Reset to 0 each time the door closes.  Populated by the MQTT bridge.
+    door_open_seconds = models.IntegerField(null=True, blank=True)
 
     # Smart plug
     power_usage = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
     energy_consumed = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+
+    # Fryer oil quality sensor
+    # TPM = Total Polar Materials %; proxy for fry oil degradation.
+    # US guidance: discard at ≥25 % (varies by jurisdiction, 24–27 %).
+    oil_tpm_percent = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True,
+        help_text="Total Polar Materials percentage (0–100)",
+    )
+    oil_temperature = models.DecimalField(
+        max_digits=6, decimal_places=2, null=True, blank=True,
+        help_text="Fryer oil temperature (°F)",
+    )
+
+    # Water leak sensor
+    water_detected = models.BooleanField(
+        null=True, blank=True,
+        help_text="True = water detected by the sensor probe",
+    )
 
     # Battery and signal
     battery_percent = models.IntegerField(null=True, blank=True)
@@ -69,6 +90,27 @@ class SensorAggregate(models.Model):
 
     # Violations
     violation_count = models.IntegerField(default=0)
+
+    # Fryer oil aggregates (null when device is not a fryer oil sensor)
+    oil_tpm_avg = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    oil_tpm_max = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    oil_tpm_readings = models.IntegerField(default=0)
+
+    # Door aggregates
+    door_open_events = models.IntegerField(
+        default=0,
+        help_text="Number of distinct open events in this period",
+    )
+    max_door_open_seconds = models.IntegerField(
+        null=True, blank=True,
+        help_text="Longest single door-open event duration (seconds)",
+    )
+
+    # Water leak aggregates
+    water_events = models.IntegerField(
+        default=0,
+        help_text="Number of wet detections in this period",
+    )
 
     class Meta:
         db_table = 'sensor_aggregates'

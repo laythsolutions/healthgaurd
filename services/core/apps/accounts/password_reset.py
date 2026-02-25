@@ -4,6 +4,8 @@ import logging
 from datetime import timedelta
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.template.loader import render_to_string
 import sendgrid
@@ -120,6 +122,15 @@ class PasswordResetManager:
             return {
                 'success': False,
                 'message': error
+            }
+
+        # Validate password strength
+        try:
+            validate_password(new_password, user)
+        except ValidationError as e:
+            return {
+                'success': False,
+                'message': e.messages[0] if e.messages else 'Password does not meet requirements.'
             }
 
         # Set new password

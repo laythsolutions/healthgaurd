@@ -3,6 +3,7 @@
 import logging
 from django.contrib.auth.backends import BaseBackend
 from django.conf import settings
+from django.utils import timezone
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 
@@ -43,7 +44,6 @@ class APIKeyBackend(BaseBackend):
                 return None
 
         # Update last used
-        from django.utils import timezone
         api_key.last_used_at = timezone.now()
         api_key.save(update_fields=['last_used_at'])
 
@@ -154,7 +154,7 @@ class APIKeyPermission:
             return True
 
         # Check if API key has all required scopes
-        return all(scope in api_key.scopes for scope in required_scapes)
+        return all(scope in api_key.scopes for scope in required_scopes)
 
 
 def get_api_key_from_request(request):
@@ -186,7 +186,6 @@ def get_api_key_from_request(request):
         )
 
         # Check expiration
-        from django.utils import timezone
         if api_key.expires_at and api_key.expires_at < timezone.now():
             return None
 

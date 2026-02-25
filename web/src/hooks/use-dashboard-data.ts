@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { fetchDashboardSummary } from '@/lib/api';
 
 interface DashboardData {
   summary: {
@@ -18,21 +19,11 @@ export function useDashboardData(restaurantId: string) {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    // Simulate API call
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        // Mock data for now
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        setData({
-          summary: {
-            compliance_score: 94.5,
-            active_devices: 12,
-            offline_devices: 1,
-            critical_alerts: 2,
-            avg_temperature: 38.2,
-          },
-        });
+        const result = await fetchDashboardSummary(restaurantId);
+        setData(result);
         setError(null);
       } catch (err) {
         setError(err as Error);

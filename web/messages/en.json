@@ -1,0 +1,174 @@
+{
+  "nav": {
+    "home": "Home",
+    "restaurants": "Restaurants",
+    "advisories": "Advisories",
+    "recalls": "Recalls",
+    "about": "About",
+    "portal": "Staff Portal"
+  },
+
+  "home": {
+    "hero_title": "Food Safety Intelligence",
+    "hero_subtitle": "Real-time restaurant grades, recall alerts, and outbreak advisories — open and transparent.",
+    "search_placeholder": "Search restaurants by name or address…",
+    "search_button": "Search",
+    "grade_checker": "Check a Restaurant",
+    "grade_checker_hint": "Find grades, inspection history, and any linked recall advisories.",
+    "recall_banner": "{count} active recall{count, plural, one {} other {s}} in your area",
+    "advisory_banner": "{count} active outbreak advisor{count, plural, one {y} other {ies}}",
+    "no_active_advisories": "No active advisories",
+    "sections": {
+      "recent_inspections": "Recent Inspections",
+      "active_recalls": "Active Recalls",
+      "active_advisories": "Active Advisories"
+    }
+  },
+
+  "restaurant": {
+    "grade": "Grade",
+    "score": "Score",
+    "last_inspection": "Last inspection",
+    "inspection_history": "Inspection history",
+    "no_inspections": "No inspections on record.",
+    "violations": "Violations",
+    "critical_violations": "Critical violations",
+    "no_violations": "No violations recorded.",
+    "linked_recalls": "Linked recalls",
+    "view_full_profile": "View full profile",
+    "directions": "Get directions",
+    "call": "Call",
+    "website": "Website"
+  },
+
+  "grades": {
+    "A": "A — Excellent",
+    "B": "B — Good",
+    "C": "C — Adequate",
+    "P": "P — Provisional",
+    "X": "X — Closed"
+  },
+
+  "advisories": {
+    "page_title": "Outbreak Advisories",
+    "privacy_notice": "Privacy by design. All advisories are derived from anonymized, aggregated case data submitted by participating healthcare institutions. No personally identifiable information is published. Location precision is limited to ~40 km geographic cells. Only investigations with ≥3 confirmed or probable cases are shown.",
+    "no_advisories_title": "No active advisories",
+    "no_advisories_body": "No outbreak investigations currently meet the public disclosure threshold. This page updates automatically as new cases are reported and investigated.",
+    "sections": {
+      "active": "Active Investigations",
+      "open": "Under Investigation",
+      "resolved": "Resolved"
+    },
+    "card": {
+      "status_open": "Under investigation",
+      "status_active": "Active investigation",
+      "status_closed": "Closed",
+      "status_archived": "Archived",
+      "cases": "{count} case{count, plural, one {} other {s}}",
+      "since": "Since {date}",
+      "suspected_vehicle": "Suspected vehicle",
+      "auto_detected": "auto-detected",
+      "cluster_score": "score {score}"
+    },
+    "data_sources": "Data sources & methodology: Advisories are generated automatically by the spatial-temporal clustering engine when ≥3 cases share a pathogen, geographic cell, and a 30-day onset window. All case data is processed through the Privacy & Anonymization Service before any aggregated advisory is published. For official outbreak communications, contact your local or state health department."
+  },
+
+  "recalls": {
+    "page_title": "Product Recalls",
+    "subtitle": "FDA and USDA food product recalls affecting your area.",
+    "filter_status": "Filter by status",
+    "filter_all": "All recalls",
+    "active": "Active",
+    "class_label": "Class {class}",
+    "class_I": "Class I — Serious health hazard",
+    "class_II": "Class II — May cause health problems",
+    "class_III": "Class III — Unlikely to cause health problems",
+    "firm": "Recalling firm",
+    "affected_states": "Affected states",
+    "initiated": "Initiated",
+    "products": "Products affected",
+    "no_recalls": "No recalls match your filters.",
+    "source_fda": "FDA",
+    "source_usda": "USDA FSIS"
+  },
+
+  "qr": {
+    "grade_as_of": "Grade as of {date}",
+    "scan_again": "Scan another restaurant",
+    "view_full": "View full inspection report",
+    "violations_title": "Critical violations ({count})",
+    "no_violations": "No critical violations on record.",
+    "grade_history": "Grade history",
+    "powered_by": "Powered by {project}"
+  },
+
+  "search": {
+    "results_count": "{count} restaurant{count, plural, one {} other {s}} found",
+    "no_results": "No restaurants found matching "{query}".",
+    "filters": {
+      "state": "State",
+      "grade": "Grade",
+      "cuisine": "Cuisine",
+      "clear": "Clear filters"
+    },
+    "sort": {
+      "relevance": "Relevance",
+      "grade_asc": "Grade: best first",
+      "grade_desc": "Grade: worst first",
+      "name": "Name A–Z"
+    }
+  },
+
+  "common": {
+    "loading": "Loading…",
+    "error": "Something went wrong. Please try again.",
+    "not_found": "Not found",
+    "back": "Back",
+    "close": "Close",
+    "save": "Save",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "or": "or",
+    "and": "and",
+    "updated": "Updated",
+    "last_updated": "Last updated {date}",
+    "see_all": "See all",
+    "show_more": "Show more",
+    "show_less": "Show less",
+    "open_in_maps": "Open in Maps",
+    "copy_link": "Copy link",
+    "share": "Share",
+    "accessibility_skip": "Skip to main content",
+    "powered_by": "Powered by {project}",
+    "open_source": "Open source — Apache 2.0",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "contact": "Contact"
+  },
+
+  "footer": {
+    "tagline": "Open-source food safety intelligence. Built by public health advocates and civic technologists.",
+    "links": {
+      "github": "GitHub",
+      "api": "Public API",
+      "docs": "Docs",
+      "schema": "Data schema",
+      "contribute": "Contribute",
+      "report_issue": "Report an issue"
+    },
+    "data_attribution": "Inspection data provided by participating health departments. Recall data from FDA and USDA FSIS.",
+    "privacy_note": "No personal data is collected by this site. Advisory data uses precision-4 geohash cells (~40 km)."
+  },
+
+  "a11y": {
+    "grade_badge": "{grade} grade",
+    "severity_critical": "Critical",
+    "severity_major": "Major",
+    "severity_minor": "Minor",
+    "external_link": "Opens in new tab",
+    "advisory_pulse": "Active advisory — pulsing indicator"
+  }
+}

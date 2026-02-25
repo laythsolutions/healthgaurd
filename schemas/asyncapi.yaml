@@ -1,0 +1,291 @@
+asyncapi: "2.6.0"
+
+info:
+  title: "healthgaurd Real-Time API"
+  version: "1.0.0"
+  description: |
+    WebSocket channels for streaming sensor data, alert notifications,
+    outbreak advisories, and recall updates.
+
+    **Transport:** WebSocket (Django Channels / Redis channel layer)
+    **Base URL:** `ws://localhost:8000` (dev) / `wss://api.[project-domain]` (prod)
+
+    ## Authentication
+
+    Authenticated channels (`/ws/sensors/`, `/ws/alerts/`) require a valid JWT
+    passed as the `Authorization` query parameter on connect:
+    ```
+    ws://host/ws/sensors/?token=<access_token>
+    ```
+
+    Public channels (`/ws/advisories/`, `/ws/recalls/`) accept anonymous connections.
+
+  contact:
+    name: "healthgaurd Community"
+    url: "https://github.com/laythsolutions/healthgaurd"
+  license:
+    name: Apache 2.0
+    url: "https://www.apache.org/licenses/LICENSE-2.0"
+
+servers:
+  development:
+    url: "ws://localhost:8000"
+    protocol: ws
+    description: Local development (Django runserver with Daphne/Uvicorn)
+  production:
+    url: "wss://api.[project-domain]"
+    protocol: wss
+    description: Production (TLS terminated at load balancer)
+
+channels:
+
+  # ---------------------------------------------------------------------------
+  # Public channels — no authentication required
+  # ---------------------------------------------------------------------------
+
+  /ws/advisories/:
+    description: |
+      Subscribe to receive push notifications when a new outbreak advisory is
+      published or an existing investigation is escalated.
+
+      Connect anonymously — no token required.
+      The server pushes messages; clients do not send data.
+    subscribe:
+      summary: Receive advisory events
+      message:
+        name: AdvisoryNew
+        title: New or escalated outbreak advisory
+        contentType: application/json
+        payload:
+          type: object
+          required: [id, title, status, case_count, opened_at]
+          properties:
+            id:
+              type: integer
+              description: OutbreakInvestigation PK
+            title:
+              type: string
+            status:
+              type: string
+              enum: [open, active]
+            pathogen:
+              type: string
+            geographic_scope:
+              type: string
+              description: "Geohash cell label, e.g. 'Geohash cell 9Q5F'"
+            case_count:
+              type: integer
+              minimum: 3
+            cluster_score:
+              type: [number, "null"]
+              description: "≥35 is considered high-priority"
+            cluster_start_date:
+              type: [string, "null"]
+              format: date
+            auto_generated:
+              type: boolean
+          example:
+            id: 42
+            title: "Auto-detected cluster: Salmonella — Geohash cell 9Q5F"
+            status: active
+            pathogen: Salmonella
+            geographic_scope: "Geohash cell 9Q5F"
+            case_count: 8
+            cluster_score: 38.4
+            cluster_start_date: "2026-01-15"
+            auto_generated: true
+
+  /ws/recalls/:
+    description: |
+      Subscribe to receive push notifications when a new FDA or USDA food
+      recall is ingested from the nightly sync.
+
+      Connect anonymously — no token required.
+      The server pushes messages; clients do not send data.
+    subscribe:
+      summary: Receive new recall events
+      message:
+        name: RecallNew
+        title: New food product recall
+        contentType: application/json
+        payload:
+          type: object
+          required: [id, title, status, source]
+          properties:
+            id:
+              type: integer
+            title:
+              type: string
+            hazard_type:
+              type: string
+              description: "e.g. 'Salmonella', 'Undeclared allergen'"
+            classification:
+              type: string
+              enum: [I, II, III, ""]
+              description: "Class I = most serious (imminent health hazard)"
+            status:
+              type: string
+              enum: [active, ongoing]
+            recalling_firm:
+              type: string
+            affected_states:
+              type: array
+              items:
+                type: string
+                minLength: 2
+                maxLength: 2
+            source:
+              type: string
+              enum: [fda, usda_fsis]
+            recall_initiation_date:
+              type: [string, "null"]
+              format: date
+          example:
+            id: 101
+            title: "Ready-to-eat salad mix recalled due to Listeria risk"
+            hazard_type: Listeria
+            classification: I
+            status: active
+            recalling_firm: "FreshPack Co."
+            affected_states: [CA, OR, WA, AZ]
+            source: fda
+            recall_initiation_date: "2026-02-20"
+
+  # ---------------------------------------------------------------------------
+  # Authenticated channels
+  # ---------------------------------------------------------------------------
+
+  /ws/sensors/{restaurant_id}/:
+    description: |
+      Restaurant-specific sensor data stream. Receives a push message each time
+      a sensor reading is processed for the given restaurant.
+
+      **Auth:** JWT access token as `?token=` query parameter.
+      **Scope:** Restaurant owner / staff for the given restaurant_id, or admin.
+    parameters:
+      restaurant_id:
+        description: Restaurant primary key
+        schema:
+          type: integer
+    subscribe:
+      summary: Real-time sensor readings
+      message:
+        name: SensorUpdate
+        title: Sensor reading event
+        contentType: application/json
+        payload:
+          type: object
+          properties:
+            device_id:
+              type: string
+            sensor_type:
+              type: string
+              enum: [TEMP, HUMIDITY, DOOR, PLUG, MOTION]
+            value:
+              type: number
+              description: Reading value (°F for temp, % for humidity, boolean for door)
+            unit:
+              type: string
+            battery_percent:
+              type: [integer, "null"]
+            rssi:
+              type: [integer, "null"]
+            timestamp:
+              type: string
+              format: date-time
+            alert_triggered:
+              type: boolean
+              description: True if this reading triggered a compliance alert
+          example:
+            device_id: "zigbee:0x00158d0001234abc"
+            sensor_type: TEMP
+            value: 47.2
+            unit: F
+            battery_percent: 82
+            rssi: -65
+            timestamp: "2026-02-24T14:30:00Z"
+            alert_triggered: true
+
+  /ws/sensors/:
+    description: |
+      User-default sensor stream — receives readings for the authenticated user's
+      primary restaurant. Use `/ws/sensors/{restaurant_id}/` for explicit routing.
+
+      **Auth:** JWT access token as `?token=` query parameter.
+    subscribe:
+      summary: Sensor readings for user's default restaurant
+      message:
+        $ref: "#/channels/~1ws~1sensors~1{restaurant_id}~1/subscribe/message"
+
+  /ws/alerts/restaurant/{restaurant_id}/:
+    description: |
+      Restaurant-level alert stream. Pushes a message whenever a new ACTIVE
+      compliance alert is created for the given restaurant — temperature breaches,
+      device offline events, battery warnings, etc.
+
+      **Auth:** JWT access token as `?token=` query parameter.
+      **Scope:** Restaurant owner / staff or health department inspector.
+    parameters:
+      restaurant_id:
+        description: Restaurant primary key
+        schema:
+          type: integer
+    subscribe:
+      summary: Real-time compliance alerts for a restaurant
+      message:
+        name: AlertUpdate
+        title: New or updated compliance alert
+        contentType: application/json
+        payload:
+          type: object
+          properties:
+            id:
+              type: integer
+            alert_type:
+              type: string
+              enum:
+                - TEMP_VIOLATION
+                - HUMIDITY_VIOLATION
+                - DOOR_OPEN
+                - LOW_BATTERY
+                - DEVICE_OFFLINE
+                - MANUAL_LOG
+            severity:
+              type: string
+              enum: [CRITICAL, WARNING, INFO]
+            status:
+              type: string
+              enum: [ACTIVE, ACKNOWLEDGED, RESOLVED, FALSE_POSITIVE]
+            title:
+              type: string
+            message:
+              type: string
+            restaurant_id:
+              type: integer
+            device_id:
+              type: [integer, "null"]
+            created_at:
+              type: string
+              format: date-time
+          example:
+            id: 1099
+            alert_type: TEMP_VIOLATION
+            severity: CRITICAL
+            status: ACTIVE
+            title: "Walk-in cooler above safe temperature"
+            message: "Walk-in cooler reading 48.1°F — above 41°F maximum. Duration: 23 minutes."
+            restaurant_id: 7
+            device_id: 31
+            created_at: "2026-02-24T14:31:05Z"
+
+  /ws/alerts/:
+    description: |
+      User-level alert stream. Pushes alerts for the authenticated user's account,
+      scoped to their organization. Use `/ws/alerts/restaurant/{id}/` for a
+      specific restaurant stream.
+
+      **Auth:** JWT access token as `?token=` query parameter.
+    subscribe:
+      summary: User-level alert notifications
+      message:
+        $ref: "#/channels/~1ws~1alerts~1restaurant~1{restaurant_id}~1/subscribe/message"

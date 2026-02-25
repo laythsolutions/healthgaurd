@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { fetchDevices, fetchLocations, createDevice, updateDevice, deleteDevice as apiDeleteDevice } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -78,91 +79,25 @@ export function DeviceManagement({ restaurantId }: DeviceManagementProps) {
     reporting_interval: 300,
   });
 
-  useEffect(() => {
-    // Load devices (mock data for now)
-    const mockDevices: Device[] = [
-      {
-        id: '1',
-        device_id: '0x00158d0001a2b3c4',
-        name: 'Walk-in Cooler #1',
-        device_type: 'TEMP',
-        status: 'ACTIVE',
-        location: 'Walk-in Cooler',
-        battery_percent: 85,
-        rssi: -52,
-        last_seen: new Date().toISOString(),
-        temp_threshold_min: 33,
-        temp_threshold_max: 41,
-        reporting_interval: 300,
-      },
-      {
-        id: '2',
-        device_id: '0x00158d0002b3c4d5',
-        name: 'Walk-in Freezer',
-        device_type: 'TEMP',
-        status: 'ACTIVE',
-        location: 'Walk-in Freezer',
-        battery_percent: 92,
-        rssi: -48,
-        last_seen: new Date().toISOString(),
-        temp_threshold_min: -10,
-        temp_threshold_max: 0,
-        reporting_interval: 300,
-      },
-      {
-        id: '3',
-        device_id: '0x00158d0003c4d5e6',
-        name: 'Hot Holding Station',
-        device_type: 'TEMP',
-        status: 'LOW_BATTERY',
-        location: 'Kitchen Line',
-        battery_percent: 18,
-        rssi: -65,
-        last_seen: new Date(Date.now() - 300000).toISOString(),
-        temp_threshold_min: 135,
-        temp_threshold_max: null,
-        reporting_interval: 300,
-      },
-      {
-        id: '4',
-        device_id: '0x00158d0004d5e6f7',
-        name: 'Kitchen Door',
-        device_type: 'DOOR',
-        status: 'ACTIVE',
-        location: 'Kitchen Entrance',
-        battery_percent: 78,
-        rssi: -55,
-        last_seen: new Date().toISOString(),
-        reporting_interval: 60,
-      },
-      {
-        id: '5',
-        device_id: '0x00158d0005e6f708',
-        name: 'Prep Area Humidity',
-        device_type: 'HUMIDITY',
-        status: 'OFFLINE',
-        location: 'Prep Area',
-        battery_percent: null,
-        rssi: null,
-        last_seen: new Date(Date.now() - 7200000).toISOString(),
-        reporting_interval: 300,
-      },
-    ];
-
-    const mockLocations: Location[] = [
-      { id: '1', name: 'Walk-in Cooler' },
-      { id: '2', name: 'Walk-in Freezer' },
-      { id: '3', name: 'Kitchen Line' },
-      { id: '4', name: 'Prep Area' },
-      { id: '5', name: 'Dining Area' },
-      { id: '6', name: 'Dry Storage' },
-      { id: '7', name: 'Dishwashing Area' },
-    ];
-
-    setDevices(mockDevices);
-    setLocations(mockLocations);
-    setIsLoading(false);
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [devicesData, locationsData] = await Promise.all([
+        fetchDevices(restaurantId),
+        fetchLocations(restaurantId),
+      ]);
+      setDevices(devicesData);
+      setLocations(locationsData);
+    } catch (err) {
+      console.error('Failed to load devices:', err);
+    } finally {
+      setIsLoading(false);
+    }
   }, [restaurantId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleAddDevice = () => {
     // Reset form
@@ -192,39 +127,33 @@ export function DeviceManagement({ restaurantId }: DeviceManagementProps) {
     setIsEditModalOpen(true);
   };
 
-  const handleDeleteDevice = (deviceId: string) => {
+  const handleDeleteDevice = async (deviceId: string) => {
     if (confirm('Are you sure you want to delete this device?')) {
-      setDevices(devices.filter(d => d.id !== deviceId));
-      // TODO: Call API to delete device
+      try {
+        await apiDeleteDevice(deviceId);
+        setDevices(devices.filter(d => d.id !== deviceId));
+      } catch (err) {
+        console.error('Failed to delete device:', err);
+      }
     }
   };
 
-  const handleSaveDevice = () => {
-    if (isEditModalOpen && selectedDevice) {
-      // Edit existing device
-      setDevices(devices.map(d =>
-        d.id === selectedDevice.id
-          ? { ...d, ...formData }
-          : d
-      ));
-    } else {
-      // Add new device
-      const newDevice: Device = {
-        id: Date.now().toString(),
-        ...formData,
-        status: 'ACTIVE',
-        battery_percent: 100,
-        rssi: -50,
-        last_seen: new Date().toISOString(),
-      };
-      setDevices([...devices, newDevice]);
+  const handleSaveDevice = async () => {
+    try {
+      if (isEditModalOpen && selectedDevice) {
+        const updated = await updateDevice(selectedDevice.id, formData);
+        setDevices(devices.map(d => d.id === selectedDevice.id ? updated : d));
+      } else {
+        const created = await createDevice(restaurantId, formData);
+        setDevices([...devices, created]);
+      }
+
+      setIsAddModalOpen(false);
+      setIsEditModalOpen(false);
+      setSelectedDevice(null);
+    } catch (err) {
+      console.error('Failed to save device:', err);
     }
-
-    setIsAddModalOpen(false);
-    setIsEditModalOpen(false);
-    setSelectedDevice(null);
-
-    // TODO: Call API to save device
   };
 
   const getStatusBadge = (status: string) => {

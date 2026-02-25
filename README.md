@@ -1,186 +1,189 @@
-# HealthGuard - Restaurant Compliance Monitoring Platform
+# healthgaurd
 
-A hybrid edge-cloud IoT platform for automated restaurant health compliance monitoring with real-time sensors, predictive analytics, and intelligent reporting.
+> An open-source food safety intelligence platform — connecting restaurant inspections, IoT sensor monitoring, recall tracking, and clinical outbreak detection into a single, privacy-first system built for public health.
 
-## System Status
+[![CI](https://github.com/laythsolutions/healthgaurd/actions/workflows/ci.yml/badge.svg)](https://github.com/laythsolutions/healthgaurd/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-**Overall Progress: 100% Complete ✅**
+---
 
-| Component | Status | Notes |
-|-----------|--------|-------|
-| Cloud Backend | ✅ Complete | Django + TimescaleDB + Celery |
-| Edge Gateway | ✅ Complete | Raspberry Pi + MQTT + Docker |
-| Mobile App | ✅ Complete | Flutter with offline support |
-| Web Dashboard | ✅ Complete | Next.js 14 + shadcn/ui |
-| Data Intelligence | ✅ Complete | Public data harvesters + ML models |
-| OTA Updates | ✅ Complete | RSA-signed updates with rollback |
-| Compliance Reports | ✅ Complete | PDF generation + scheduling |
-| Alert System | ✅ Complete | SMS (Twilio) + Email (SendGrid) + Push (Firebase) + Webhooks |
-| Authentication | ✅ Complete | JWT + OAuth2 + MFA + API Keys + Session Management |
+## What this is
 
-## Quick Start
+healthgaurd is an open-source platform that aggregates data from health department inspections, IoT sensors in food service establishments, FDA/USDA recall feeds, clinical case reports, and retail supply chains — then applies analytics to detect patterns that no single data source can reveal alone.
+
+It is designed to be deployable by local health departments, academic public health programs, and civic technology organizations. All health and personal data is anonymized at ingestion; consent is tracked per data subject; and every component is auditable by the community.
+
+**What it is not:** a commercial product, a replacement for regulatory authority, or a complete epidemiological investigation platform on its own. It is infrastructure and tooling that makes investigation faster and more data-driven.
+
+---
+
+## Key capabilities
+
+| Capability | Description |
+|---|---|
+| Restaurant intelligence | Registry, inspection history, violation tracking, grade display |
+| IoT monitoring | Real-time temperature, door, leak, and fryer oil sensors; predictive failure alerts |
+| Recall tracking | FDA/USDA feed ingestion, lot matching, affected-location mapping, remediation workflow |
+| Clinical reporting | Anonymized case submission from EDs and labs; cluster threshold alerting |
+| Outbreak analytics | Spatial-temporal clustering, odds ratio calculations, supply chain traceback |
+| Public transparency | Searchable restaurant grades, anonymized outbreak advisories, public API |
+| Privacy by default | PII stripping, geohash encoding, consent management, audit logging |
+
+---
+
+## Architecture overview
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Data Sources                             │
+│  Health dept APIs  │  FDA/USDA feeds  │  IoT sensors  │  EHRs  │
+└──────────┬──────────────────┬──────────────────┬────────────────┘
+           │                  │                  │
+           ▼                  ▼                  ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                    services/intelligence                         │
+│          Ingestion connectors · Schema validation                │
+│          Retry / backoff · Idempotency · Provenance logging      │
+└──────────────────────┬───────────────────────────────────────────┘
+                       │
+                       ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                      services/core                               │
+│  Privacy & Anonymization  │  Core Data Service  │  Analytics     │
+│  (PII strip, geohash,     │  (restaurants,      │  (clustering,  │
+│   consent management)     │   sensors, recalls, │   traceback,   │
+│                           │   clinical cases)   │   IoT models)  │
+│                       ────┤                     │                │
+│                Notification & Workflow Service                   │
+│          (alerts, recall ACK, remediation tasks)                 │
+└───────────┬──────────────────────────────────────────────────────┘
+            │
+     ┌──────┴──────┐
+     ▼             ▼
+┌─────────┐  ┌────────────────────────────────────────────────────┐
+│ gateway │  │                      web / mobile                  │
+│ (edge)  │  │  Public app  │  Restaurant dash  │  Health dept    │
+│ Pi+MQTT │  │              │                   │  portal         │
+└─────────┘  └────────────────────────────────────────────────────┘
+```
+
+---
+
+## Repository structure
+
+```
+healthgaurd/
+├── services/
+│   ├── core/           # Django REST API — auth, restaurants, sensors,
+│   │                   #   alerts, analytics, reports, OTA
+│   └── intelligence/   # Data harvesters, recall connectors,
+│                       #   risk scoring, real-time monitors
+├── gateway/            # Raspberry Pi edge software — MQTT bridge,
+│                       #   Zigbee/Bluetooth drivers, OTA client
+├── web/                # Next.js — public app, restaurant dashboard,
+│                       #   health department portal
+├── mobile/             # Flutter — QR scan, push alerts, offline cache
+├── schemas/            # Shared OpenAPI specs and JSON Schema definitions
+├── devops/
+│   ├── k8s/            # Kubernetes manifests (Helm charts coming)
+│   ├── monitoring/     # Prometheus, Grafana, Alertmanager configs
+│   ├── mosquitto/      # MQTT broker configuration
+│   └── scripts/        # Deployment and maintenance scripts
+└── docs/               # Architecture docs, governance, tutorials
+```
+
+---
+
+## Quick start (development)
+
+**Prerequisites:** Docker, Docker Compose, Git.
 
 ```bash
-# Start all services
-docker-compose -f docker-compose.dev.yml up -d
+git clone https://github.com/laythsolutions/healthgaurd.git
+cd healthgaurd
 
-# Access services
-# - Web Dashboard: http://localhost:3000
-# - API: http://localhost:8000
-# - API Docs: http://localhost:8000/api/docs
-# - MQTT Broker: mqtt://localhost:1883
+cp .env.example .env
+# Edit .env — at minimum set SECRET_KEY, POSTGRES_PASSWORD, TIMESCALEDB_PASSWORD
+
+docker compose -f docker-compose.dev.yml up -d
 ```
 
-## Project Structure
+Services:
 
-```
-healthguard/
-├── edge-gateway/      # Raspberry Pi edge computing (Python + Docker)
-│   ├── mqtt-bridge/   # Offline-first MQTT bridge
-│   ├── ota/           # OTA update client
-│   └── docker/        # Docker compose for edge services
-├── cloud-backend/     # Django REST API + TimescaleDB
-│   └── apps/
-│       ├── accounts/      # Authentication & authorization
-│       ├── restaurants/   # Restaurant & location management
-│       ├── devices/       # IoT device management
-│       ├── sensors/       # Time-series sensor data
-│       ├── alerts/        # Alert rules & notifications
-│       ├── analytics/     # Predictive analytics
-│       ├── reports/       # PDF compliance reports
-│       └── ota/           # OTA update management
-├── web-dashboard/     # Next.js multi-location dashboard
-├── mobile-app/        # Flutter app for restaurant staff
-├── data-intelligence/ # Public data harvesters + ML
-│   ├── harvesters/    # State health department APIs
-│   ├── processors/    # Risk scoring & lead generation
-│   └── analytics/     # Predictive models
-├── shared/            # Shared schemas, types, utilities
-└── docs/              # Technical documentation
+| Service | URL |
+|---|---|
+| REST API | http://localhost:8000 |
+| Interactive API docs | http://localhost:8000/api/docs |
+| Web dashboard | http://localhost:3000 |
+| MQTT broker | mqtt://localhost:1883 |
+
+Run backend tests:
+
+```bash
+docker compose -f docker-compose.dev.yml exec cloud-api pytest
 ```
 
-## Key Features
+Run frontend tests:
 
-### Real-Time Monitoring
-- Zigbee temperature sensors (4-hour battery, 2-year life)
-- Automatic readings every 15 minutes
-- Offline-first operation with edge computing
-- Local PostgreSQL caching for 7-30 days
+```bash
+cd web && npm test
+```
 
-### Compliance Reporting
-- 8-12 page comprehensive PDF reports
-- Automated scheduling (daily, weekly, monthly, quarterly)
-- Inspection preparation checklists
-- One-page scorecards for management
-- Email delivery with attachments
+See [`docs/development/`](docs/development/) for more detailed setup, including edge gateway emulation and sensor simulation.
 
-### Predictive Analytics
-- Inspection date prediction (±30 days)
-- Risk scoring (5-factor model)
-- Lead scoring for sales (6-factor model)
-- Market penetration analysis
-- Competitor intelligence
+---
 
-### OTA Updates
-- RSA-2048 signed updates
-- Automatic rollback on failure
-- Staged rollout capability
-- Zero-downtime deployments
+## Tech stack
 
-## Tech Stack
+| Layer | Technologies |
+|---|---|
+| Backend API | Django 4.2, Django REST Framework, TimescaleDB, PostgreSQL, Celery, Redis |
+| Data services | Python 3.11, FastAPI, Pandas, Scikit-learn, async HTTP |
+| Web frontend | Next.js 14, React 18, TypeScript, Tailwind CSS, shadcn/ui |
+| Mobile | Flutter 3, Dart, Riverpod, SQLite |
+| Edge / IoT | Python 3.11, Mosquitto MQTT, Zigbee2MQTT, Docker Compose |
+| Infrastructure | Kubernetes, Prometheus, Grafana, GitHub Actions |
 
-### Edge (Raspberry Pi 4)
-- Python 3.11, MQTT, Docker Compose
-- PostgreSQL (local cache)
-- Zigbee2MQTT (sensor communication)
+---
 
-### Cloud Backend
-- Django 4.2, Django REST Framework
-- TimescaleDB (time-series data)
-- PostgreSQL (application data)
-- Celery + Redis (background tasks)
-- HiveMQ (cloud MQTT broker)
+## Roadmap
 
-### Web Dashboard
-- Next.js 14, React 18
-- TypeScript, Tailwind CSS
-- shadcn/ui components
-- Zustand + React Query
+See [`ROADMAP.md`](ROADMAP.md) for the full multi-year plan. High-level milestones:
 
-### Mobile App
-- Flutter 3.x, Dart
-- Riverpod (state management)
-- SQLite (local cache)
-- MQTT client
+- **Year 1 (Foundation):** Core backend, inspection ingestion, privacy service, public web app, IoT gateway — [in progress]
+- **Year 2 (Integration):** Clinical reporting, recall supply chain, health department portal, security hardening
+- **Year 3 (Analytics & Pilots):** Cluster detection, traceback, first real-world pilots, public API
+- **Year 4 (Scale):** Internationalization, multi-tenant deployments, sustainability
 
-### Data Intelligence
-- Python 3.11, FastAPI
-- Scikit-learn, Pandas
-- Async HTTP clients
-- Public API integrations
+---
 
-## API Endpoints
+## Contributing
 
-### Authentication
-- `POST /api/v1/auth/register/` - Register new user
-- `POST /api/v1/auth/login/` - Login (returns JWT)
-- `POST /api/v1/auth/logout/` - Logout
-- `GET /api/v1/auth/me/` - Get current user
-- `POST /api/v1/auth/change_password/` - Change password
-- `GET /api/v1/auth/oauth_url/` - Get OAuth2 authorization URL
-- `POST /api/v1/auth/oauth_callback/` - OAuth2 callback
-- `POST /api/v1/auth/forgot_password/` - Request password reset
-- `POST /api/v1/auth/reset_password/` - Reset password
-- `GET /api/v1/auth/mfa_status/` - Get MFA status
-- `POST /api/v1/auth/mfa_setup/` - Set up MFA
-- `POST /api/v1/auth/mfa_verify/` - Verify MFA token
-- `GET /api/v1/auth/api_keys/` - List API keys
-- `POST /api/v1/auth/create_api_key/` - Create API key
-- `GET /api/v1/auth/sessions/` - List active sessions
+We welcome contributions of all kinds — code, documentation, testing, design, and domain expertise (epidemiology, food safety regulation, clinical informatics, IoT).
 
-### Restaurants
-- `GET /api/v1/restaurants/` - List restaurants
-- `POST /api/v1/restaurants/` - Create restaurant
-- `GET /api/v1/restaurants/{id}/` - Get details
+Start with [`CONTRIBUTING.md`](CONTRIBUTING.md). Good first issues are tagged [`good first issue`](https://github.com/laythsolutions/healthgaurd/labels/good%20first%20issue).
 
-### Sensors & Devices
-- `GET /api/v1/sensors/readings/` - Get sensor data
-- `POST /api/v1/devices/` - Register device
-- `GET /api/v1/devices/{id}/status/` - Device status
+---
 
-### Alerts
-- `GET /api/v1/alerts/` - List alerts
-- `POST /api/v1/alerts/rules/` - Create alert rule
-- `PUT /api/v1/alerts/{id}/acknowledge/` - Acknowledge alert
+## Governance
 
-### Reports
-- `POST /api/v1/reports/generate/` - Generate report
-- `GET /api/v1/reports/{id}/` - Get report status
-- `POST /api/v1/reports/schedules/` - Create schedule
-- `GET /api/v1/reports/summary/` - Get statistics
+healthgaurd is governed by:
 
-### OTA Updates
-- `GET /api/v1/ota/manifests/` - List available updates
-- `POST /api/v1/ota/manifests/` - Create update manifest
-- `POST /api/v1/ota/gateways/{id}/deploy/` - Deploy update
+- **Technical Steering Committee (TSC)** — roadmap and major decisions
+- **Security & Privacy Board** — vulnerability response and data policy
+- **Community Council** — voice of end users and domain stakeholders
 
-## Documentation
+Governance documents are in [`docs/governance/`](docs/governance/).
 
-- [Compliance Reports Overview](docs/COMPLIANCE_REPORTS_OVERVIEW.md)
-- [OTA Update System](docs/OTA_SYSTEM_OVERVIEW.md)
-- [Data Intelligence](docs/DATA_INTELLIGENCE_OVERVIEW.md)
+---
 
-## Business Model
+## Security
 
-- **Hardware**: $299 one-time (Raspberry Pi + sensors)
-- **Software**: $99/month per location
-- **Gross Margin**: ~95% after hardware recoup
-- **Payback Period**: ~3 months for customers
+Please do not open public issues for security vulnerabilities. See [`SECURITY.md`](SECURITY.md) for the private reporting process and response timelines.
 
-## Architecture
-
-Edge-first design that works completely offline during internet outages. All critical compliance checking happens at the edge with automatic cloud sync when connectivity is restored.
+---
 
 ## License
 
-Proprietary - All Rights Reserved
+[Apache 2.0](LICENSE). Copyright 2026 healthgaurd Contributors.

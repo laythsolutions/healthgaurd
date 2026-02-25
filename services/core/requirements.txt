@@ -34,6 +34,10 @@ cryptography==42.0.5
 requests==2.31.0
 httpx==0.26.0
 
+# Privacy & anonymization
+# (geohash encoding is implemented inline — no external dep required)
+jsonschema==4.21.1     # schema validation for ingestion payloads
+
 # Data & Analytics
 pandas==2.2.1
 numpy==1.26.4

@@ -51,15 +51,15 @@ build_images() {
 
     # Backend
     echo -e "${YELLOW}Building backend image...${NC}"
-    docker build -t healthguard-backend:${ENVIRONMENT} -f cloud-backend/Dockerfile .
+    docker build -t healthguard-backend:${ENVIRONMENT} -f services/core/Dockerfile .
 
     # Frontend
     echo -e "${YELLOW}Building frontend image...${NC}"
-    docker build -t healthguard-frontend:${ENVIRONMENT} -f web-dashboard/Dockerfile .
+    docker build -t healthguard-frontend:${ENVIRONMENT} -f web/Dockerfile .
 
     # Edge Gateway
     echo -e "${YELLOW}Building edge gateway image...${NC}"
-    docker build -t healthguard-edge:${ENVIRONMENT} -f edge-gateway/Dockerfile .
+    docker build -t healthguard-edge:${ENVIRONMENT} -f gateway/Dockerfile .
 
     echo -e "${GREEN}✓ Images built successfully${NC}"
 }
@@ -93,15 +93,15 @@ deploy_kubernetes() {
 
     # Apply secrets
     echo -e "${YELLOW}Applying secrets...${NC}"
-    kubectl apply -f kubernetes/secrets-${ENVIRONMENT}.yaml
+    kubectl apply -f devops/k8s/secrets-${ENVIRONMENT}.yaml
 
     # Apply ConfigMaps
     echo -e "${YELLOW}Applying configurations...${NC}"
-    kubectl apply -f kubernetes/configmaps.yaml
+    kubectl apply -f devops/k8s/configmaps.yaml
 
     # Deploy database
     echo -e "${YELLOW}Deploying databases...${NC}"
-    kubectl apply -f kubernetes/databases.yaml
+    kubectl apply -f devops/k8s/databases.yaml
     kubectl rollout status deployment/postgres -n ${NAMESPACE}
     kubectl rollout status deployment/timescale -n ${NAMESPACE}
     kubectl rollout status deployment/redis -n ${NAMESPACE}
@@ -120,7 +120,7 @@ deploy_kubernetes() {
 
     # Deploy application
     echo -e "${YELLOW}Deploying applications...${NC}"
-    envsubst < kubernetes/deployments.yaml | kubectl apply -f -
+    envsubst < devops/k8s/deployments.yaml | kubectl apply -f -
 
     # Wait for deployments to be ready
     echo -e "${YELLOW}Waiting for deployments to be ready...${NC}"
@@ -130,9 +130,9 @@ deploy_kubernetes() {
 
     # Deploy monitoring
     echo -e "${YELLOW}Deploying monitoring stack...${NC}"
-    kubectl apply -f monitoring/prometheus.yaml
-    kubectl apply -f monitoring/grafana.yaml
-    kubectl apply -f monitoring/alertmanager.yaml
+    kubectl apply -f devops/monitoring/prometheus.yaml
+    kubectl apply -f devops/monitoring/grafana.yaml
+    kubectl apply -f devops/monitoring/alertmanager.yaml
 
     echo -e "${GREEN}✓ Deployment completed successfully${NC}"
 }

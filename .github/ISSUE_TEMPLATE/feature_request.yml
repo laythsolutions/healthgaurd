@@ -1,0 +1,73 @@
+name: Feature Request
+description: Propose a new feature or enhancement
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for proposing an improvement. Large architectural changes should go through the RFC process (see `docs/governance/`). This form is for smaller features and enhancements.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of the system would this affect?
+      options:
+        - services/core (Django backend API)
+        - services/intelligence (data harvesters / analytics)
+        - web (Next.js dashboard)
+        - mobile (Flutter app)
+        - gateway (edge / IoT)
+        - schemas (shared data models)
+        - devops (Docker / Kubernetes / CI)
+        - new component
+        - documentation
+        - other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or motivation
+      description: What problem does this solve? Who benefits?
+      placeholder: |
+        As a [health department inspector / restaurant owner / public user / developer],
+        I need [capability] so that [outcome].
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe the feature you'd like to see. Include sketches, API shapes, or data models if helpful.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Have you considered other approaches? Why is this one preferred?
+
+  - type: dropdown
+    id: privacy_impact
+    attributes:
+      label: Privacy / data impact
+      description: Does this feature touch personal health information, location data, or consent flows?
+      options:
+        - No — does not involve personal or health data
+        - Yes — involves PII or health data (describe in solution above)
+        - Unsure
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched existing issues and discussions to confirm this is not already proposed.
+          required: true
+        - label: I am willing to help implement or test this feature.

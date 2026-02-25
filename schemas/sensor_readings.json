@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.[project-domain]/v1/sensor_readings.json",
+  "title": "SensorReading",
+  "description": "A time-series reading from an IoT sensor in a food service establishment",
+  "type": "object",
+  "x-sensitivity": "internal",
+  "required": ["device_id", "timestamp", "sensor_type", "value"],
+  "properties": {
+    "id": { "type": "string" },
+    "device_id": {
+      "type": "string",
+      "description": "Unique identifier of the sensor device"
+    },
+    "gateway_id": {
+      "type": "string",
+      "description": "ID of the edge gateway that collected this reading"
+    },
+    "establishment_id": { "type": "string" },
+    "location_id": {
+      "type": "string",
+      "description": "Zone within the establishment (e.g. Walk-in Cooler #1)"
+    },
+    "sensor_type": {
+      "type": "string",
+      "enum": [
+        "temperature", "humidity", "door_open",
+        "water_leak", "fryer_oil_tpe", "co2", "other"
+      ]
+    },
+    "value": {
+      "type": "number",
+      "description": "Sensor reading in the unit specified by 'unit'"
+    },
+    "unit": {
+      "type": "string",
+      "examples": ["°F", "°C", "%RH", "boolean", "mg/g", "ppm"],
+      "description": "Unit of the value field"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC timestamp of the reading"
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the cloud backend received this reading"
+    },
+    "battery_pct": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "maximum": 100
+    },
+    "signal_strength_dbm": { "type": ["integer", "null"] },
+    "quality": {
+      "type": "string",
+      "enum": ["good", "estimated", "error", "calibrating"],
+      "default": "good"
+    },
+    "flags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "e.g. ['threshold_exceeded', 'offline_buffered', 'calibration_due']"
+    },
+    "raw_payload": {
+      "type": "object",
+      "description": "Original MQTT/HTTP payload from the device, for debugging"
+    }
+  },
+  "additionalProperties": false
+}

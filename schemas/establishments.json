@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.[project-domain]/v1/establishments.json",
+  "title": "Establishment",
+  "description": "A food service establishment (restaurant, grocery, deli, etc.)",
+  "type": "object",
+  "x-sensitivity": "internal",
+  "required": ["id", "name", "address", "city", "state"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Canonical establishment identifier"
+    },
+    "external_ids": {
+      "type": "object",
+      "description": "Identifiers from source systems",
+      "properties": {
+        "health_dept_id": { "type": "string" },
+        "fda_registration": { "type": "string" },
+        "permit_number": { "type": "string" }
+      }
+    },
+    "name": { "type": "string", "maxLength": 300 },
+    "dba": {
+      "type": "string",
+      "description": "Doing Business As name",
+      "maxLength": 300
+    },
+    "establishment_type": {
+      "type": "string",
+      "enum": [
+        "full_service_restaurant", "fast_food", "cafe", "bakery",
+        "grocery", "deli", "food_truck", "catering", "school_cafeteria",
+        "hospital_cafeteria", "bar", "other"
+      ]
+    },
+    "cuisine": { "type": "string" },
+    "address": { "type": "string" },
+    "city": { "type": "string" },
+    "state": { "type": "string", "minLength": 2, "maxLength": 2 },
+    "zip_code": { "type": "string" },
+    "country": { "type": "string", "default": "US" },
+    "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
+    "longitude": { "type": "number", "minimum": -180, "maximum": 180 },
+    "phone": { "type": "string" },
+    "website": { "type": "string", "format": "uri" },
+    "current_grade": {
+      "type": "string",
+      "enum": ["A", "B", "C", "P", "X", ""],
+      "description": "Most recent inspection grade"
+    },
+    "last_inspection_date": { "type": "string", "format": "date" },
+    "is_active": { "type": "boolean", "default": true },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

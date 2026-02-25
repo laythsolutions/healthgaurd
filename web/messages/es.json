@@ -1,0 +1,174 @@
+{
+  "nav": {
+    "home": "Inicio",
+    "restaurants": "Restaurantes",
+    "advisories": "Alertas",
+    "recalls": "Retiros",
+    "about": "Acerca de",
+    "portal": "Portal del personal"
+  },
+
+  "home": {
+    "hero_title": "Inteligencia de seguridad alimentaria",
+    "hero_subtitle": "Calificaciones de restaurantes en tiempo real, alertas de retiros y avisos de brotes — abiertos y transparentes.",
+    "search_placeholder": "Buscar restaurantes por nombre o dirección…",
+    "search_button": "Buscar",
+    "grade_checker": "Consultar un restaurante",
+    "grade_checker_hint": "Encuentre calificaciones, historial de inspecciones y avisos de retiros vinculados.",
+    "recall_banner": "{count} retiro{count, plural, one {} other {s}} activo{count, plural, one {} other {s}} en su área",
+    "advisory_banner": "{count} aviso{count, plural, one {} other {s}} de brote activo{count, plural, one {} other {s}}",
+    "no_active_advisories": "Sin avisos activos",
+    "sections": {
+      "recent_inspections": "Inspecciones recientes",
+      "active_recalls": "Retiros activos",
+      "active_advisories": "Avisos activos"
+    }
+  },
+
+  "restaurant": {
+    "grade": "Calificación",
+    "score": "Puntuación",
+    "last_inspection": "Última inspección",
+    "inspection_history": "Historial de inspecciones",
+    "no_inspections": "Sin registros de inspección.",
+    "violations": "Infracciones",
+    "critical_violations": "Infracciones críticas",
+    "no_violations": "Sin infracciones registradas.",
+    "linked_recalls": "Retiros vinculados",
+    "view_full_profile": "Ver perfil completo",
+    "directions": "Cómo llegar",
+    "call": "Llamar",
+    "website": "Sitio web"
+  },
+
+  "grades": {
+    "A": "A — Excelente",
+    "B": "B — Bueno",
+    "C": "C — Adecuado",
+    "P": "P — Provisional",
+    "X": "X — Cerrado"
+  },
+
+  "advisories": {
+    "page_title": "Avisos de brotes",
+    "privacy_notice": "Privacidad por diseño. Todos los avisos se derivan de datos de casos anonimizados y agregados presentados por instituciones de salud participantes. No se publica información de identificación personal. La precisión de la ubicación se limita a celdas geográficas de ~40 km. Solo se muestran investigaciones con ≥3 casos confirmados o probables.",
+    "no_advisories_title": "Sin avisos activos",
+    "no_advisories_body": "Ninguna investigación de brote cumple actualmente el umbral de divulgación pública. Esta página se actualiza automáticamente a medida que se informan e investigan nuevos casos.",
+    "sections": {
+      "active": "Investigaciones activas",
+      "open": "En investigación",
+      "resolved": "Resueltos"
+    },
+    "card": {
+      "status_open": "En investigación",
+      "status_active": "Investigación activa",
+      "status_closed": "Cerrado",
+      "status_archived": "Archivado",
+      "cases": "{count} caso{count, plural, one {} other {s}}",
+      "since": "Desde {date}",
+      "suspected_vehicle": "Vehículo sospechoso",
+      "auto_detected": "detectado automáticamente",
+      "cluster_score": "puntuación {score}"
+    },
+    "data_sources": "Fuentes de datos y metodología: Los avisos son generados automáticamente por el motor de agrupamiento espacio-temporal cuando ≥3 casos comparten un patógeno, celda geográfica y una ventana de inicio de 30 días. Todos los datos de casos son procesados a través del Servicio de Privacidad y Anonimización antes de publicar cualquier aviso agregado. Para comunicaciones oficiales de brotes, comuníquese con su departamento de salud local o estatal."
+  },
+
+  "recalls": {
+    "page_title": "Retiros de productos",
+    "subtitle": "Retiros de alimentos de la FDA y el USDA que afectan su área.",
+    "filter_status": "Filtrar por estado",
+    "filter_all": "Todos los retiros",
+    "active": "Activo",
+    "class_label": "Clase {class}",
+    "class_I": "Clase I — Peligro grave para la salud",
+    "class_II": "Clase II — Puede causar problemas de salud",
+    "class_III": "Clase III — Poco probable que cause problemas de salud",
+    "firm": "Empresa que retira",
+    "affected_states": "Estados afectados",
+    "initiated": "Iniciado",
+    "products": "Productos afectados",
+    "no_recalls": "No hay retiros que coincidan con sus filtros.",
+    "source_fda": "FDA",
+    "source_usda": "USDA FSIS"
+  },
+
+  "qr": {
+    "grade_as_of": "Calificación al {date}",
+    "scan_again": "Escanear otro restaurante",
+    "view_full": "Ver informe completo de inspección",
+    "violations_title": "Infracciones críticas ({count})",
+    "no_violations": "Sin infracciones críticas registradas.",
+    "grade_history": "Historial de calificaciones",
+    "powered_by": "Desarrollado por {project}"
+  },
+
+  "search": {
+    "results_count": "{count} restaurante{count, plural, one {} other {s}} encontrado{count, plural, one {} other {s}}",
+    "no_results": "No se encontraron restaurantes que coincidan con "{query}".",
+    "filters": {
+      "state": "Estado",
+      "grade": "Calificación",
+      "cuisine": "Tipo de cocina",
+      "clear": "Limpiar filtros"
+    },
+    "sort": {
+      "relevance": "Relevancia",
+      "grade_asc": "Calificación: mejor primero",
+      "grade_desc": "Calificación: peor primero",
+      "name": "Nombre A–Z"
+    }
+  },
+
+  "common": {
+    "loading": "Cargando…",
+    "error": "Algo salió mal. Por favor, inténtelo de nuevo.",
+    "not_found": "No encontrado",
+    "back": "Atrás",
+    "close": "Cerrar",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "submit": "Enviar",
+    "confirm": "Confirmar",
+    "yes": "Sí",
+    "no": "No",
+    "or": "o",
+    "and": "y",
+    "updated": "Actualizado",
+    "last_updated": "Última actualización {date}",
+    "see_all": "Ver todo",
+    "show_more": "Mostrar más",
+    "show_less": "Mostrar menos",
+    "open_in_maps": "Abrir en Mapas",
+    "copy_link": "Copiar enlace",
+    "share": "Compartir",
+    "accessibility_skip": "Saltar al contenido principal",
+    "powered_by": "Desarrollado por {project}",
+    "open_source": "Código abierto — Apache 2.0",
+    "privacy": "Privacidad",
+    "terms": "Términos",
+    "contact": "Contacto"
+  },
+
+  "footer": {
+    "tagline": "Inteligencia de seguridad alimentaria de código abierto. Construido por defensores de la salud pública y tecnólogos cívicos.",
+    "links": {
+      "github": "GitHub",
+      "api": "API pública",
+      "docs": "Documentación",
+      "schema": "Esquema de datos",
+      "contribute": "Contribuir",
+      "report_issue": "Reportar un problema"
+    },
+    "data_attribution": "Datos de inspección proporcionados por departamentos de salud participantes. Datos de retiros de FDA y USDA FSIS.",
+    "privacy_note": "Este sitio no recopila datos personales. Los datos de avisos usan celdas geohash de precisión 4 (~40 km)."
+  },
+
+  "a11y": {
+    "grade_badge": "Calificación {grade}",
+    "severity_critical": "Crítico",
+    "severity_major": "Mayor",
+    "severity_minor": "Menor",
+    "external_link": "Se abre en una nueva pestaña",
+    "advisory_pulse": "Aviso activo — indicador parpadeante"
+  }
+}

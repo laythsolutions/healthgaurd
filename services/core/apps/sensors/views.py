@@ -2,6 +2,7 @@
 
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.utils import timezone
 from datetime import timedelta
@@ -19,6 +20,7 @@ class SensorReadingViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = SensorReading.objects.select_related('device').all()
     serializer_class = SensorReadingSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -91,6 +93,7 @@ class SensorAggregateViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = SensorAggregate.objects.select_related('device').all()
     serializer_class = SensorAggregateSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -110,6 +113,7 @@ class TemperatureLogViewSet(viewsets.ModelViewSet):
 
     queryset = TemperatureLog.objects.select_related('device', 'logged_by', 'restaurant').all()
     serializer_class = TemperatureLogSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         queryset = super().get_queryset()

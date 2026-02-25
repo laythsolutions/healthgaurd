@@ -5,6 +5,7 @@ import { TrendIndicator } from './trend-indicator';
 import { useCounterAnimation } from '@/hooks/use-gsap';
 import { GlassCard } from '@/components/layout/glass-card';
 import { CounterValue, GradientText, FloatingElement } from '@/components/animations';
+import { Sparkline } from './sparkline';
 import { cn } from '@/lib/utils';
 import { CheckCircle, AlertTriangle, Activity, Thermometer, TrendingUp, TrendingDown } from 'lucide-react';
 import { useEffect, useRef } from 'react';
@@ -25,6 +26,7 @@ interface KPICardProps {
   onClick?: () => void;
   variant?: 'default' | 'gradient' | 'glass';
   gradient?: string;
+  sparklineData?: number[];
 }
 
 const statusColors = {
@@ -56,6 +58,7 @@ export function KPICard({
   onClick,
   variant = 'default',
   gradient,
+  sparklineData,
 }: KPICardProps) {
   const numericValue = typeof value === 'number' ? value : parseFloat(value) || 0;
   const valueRef = useCounterAnimation(numericValue, {
@@ -119,6 +122,9 @@ export function KPICard({
               suffix={suffix}
             />
           </div>
+          {sparklineData && sparklineData.length > 0 && (
+            <Sparkline data={sparklineData} status={status} className="mt-2" />
+          )}
           {description && (
             <p className="text-xs text-muted-foreground mt-1">{description}</p>
           )}
@@ -176,6 +182,9 @@ export function KPICard({
               suffix={suffix}
             />
           </div>
+        )}
+        {sparklineData && sparklineData.length > 0 && (
+          <Sparkline data={sparklineData} status={status} className="mt-2" />
         )}
         {description && (
           <p className="text-xs text-muted-foreground mt-1">{description}</p>

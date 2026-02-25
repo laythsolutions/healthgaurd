@@ -151,44 +151,35 @@ class MQTTSmartBridge:
             logger.error(f"Error processing local message: {e}")
 
     def process_message_locally(self, message):
-        """Process message locally (works offline)"""
+        """
+        Process message locally (works offline).
+
+        Routes each sensor reading through the ComplianceEngine which now
+        handles temperature, fryer oil quality, door open duration, and
+        water leak sensors.  Each violation generates an alert that is
+        stored locally and forwarded to the cloud (or buffered).
+        """
         device_id = message['device_id']
-        data = message['data']
 
-        # Get device config
-        config = self.device_configs.get(device_id, {})
+        # Run all compliance checks for this reading
+        alerts = self.compliance.check_compliance(message)
 
-        # Check temperature compliance
-        if 'temperature' in data:
-            temp = data['temperature']
-            min_temp = config.get('temp_min_f')
-            max_temp = config.get('temp_max_f')
+        for alert in alerts:
+            # Store alert locally
+            self.storage.store_alert(alert)
 
-            if min_temp and max_temp:
-                # Check compliance
-                if temp < min_temp or temp > max_temp:
-                    logger.warning(f"Temperature violation: {device_id} = {temp}°F (range: {min_temp}-{max_temp})")
+            # Choose topic based on severity
+            severity = alert.get('severity', 'WARNING').lower()
+            alert_topic = f"restaurant/{self.restaurant_id}/alerts/{severity}"
+            self.local_client.publish(alert_topic, json.dumps(alert))
+            logger.info(
+                "Published local %s alert (%s) to %s",
+                alert['alert_type'], severity, alert_topic,
+            )
 
-                    # Generate alert locally
-                    alert = self.compliance.generate_alert(
-                        device_id=device_id,
-                        temperature=temp,
-                        min_temp=min_temp,
-                        max_temp=max_temp,
-                        location=config.get('location', 'Unknown')
-                    )
-
-                    # Store alert locally
-                    self.storage.store_alert(alert)
-
-                    # Publish to local alert topic
-                    alert_topic = f"restaurant/{self.restaurant_id}/alerts/critical"
-                    self.local_client.publish(alert_topic, json.dumps(alert))
-                    logger.info(f"Published local alert to {alert_topic}")
-
-                    # Forward to cloud if connected
-                    if self.is_cloud_connected:
-                        self.forward_alert_to_cloud(alert)
+            # Forward to cloud if connected
+            if self.is_cloud_connected:
+                self.forward_alert_to_cloud(alert)
 
     def forward_to_cloud(self, message):
         """Forward message to cloud"""

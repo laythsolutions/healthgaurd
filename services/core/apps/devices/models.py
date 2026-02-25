@@ -13,6 +13,8 @@ class Device(models.Model):
         DOOR_SENSOR = 'DOOR', 'Door Sensor'
         SMART_PLUG = 'PLUG', 'Smart Plug'
         MOTION_SENSOR = 'MOTION', 'Motion Sensor'
+        FRYER_OIL_SENSOR = 'FRYER_OIL', 'Fryer Oil Quality Sensor'
+        WATER_LEAK_SENSOR = 'WATER_LEAK', 'Water Leak Sensor'
 
     class DeviceStatus(models.TextChoices):
         ACTIVE = 'ACTIVE', 'Active'
@@ -41,6 +43,19 @@ class Device(models.Model):
     reporting_interval = models.IntegerField(default=300)  # Seconds between readings
     temp_threshold_min = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     temp_threshold_max = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+
+    # Fryer oil sensor thresholds
+    # US FDA/USDA guidance: discard fryer oil when TPM > 25%
+    oil_tpm_max_percent = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True,
+        help_text="Fryer oil discard threshold (Total Polar Materials %). Default: 25.0",
+    )
+
+    # Door sensor thresholds
+    door_max_open_minutes = models.IntegerField(
+        null=True, blank=True,
+        help_text="Alert if door stays open longer than this many minutes. Default: 4",
+    )
 
     # Battery & Network
     battery_percent = models.IntegerField(null=True, blank=True)
