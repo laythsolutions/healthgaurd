@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 # Constants
 # ----------------------------------------------------------------------------
 
-SYSTEM_ORG_NAME = "[PROJECT_NAME] Public Data"
+SYSTEM_ORG_NAME = "HealthGuard Public Data"
 
 GRADE_MAP: dict[str, str] = {
     "a": "A",

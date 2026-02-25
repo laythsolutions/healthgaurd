@@ -24,7 +24,7 @@ export function PublicNav() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-white">
             <Shield className="h-4 w-4" />
           </div>
-          <span className="text-base tracking-tight">[PROJECT_NAME]</span>
+          <span className="text-base tracking-tight">HealthGuard</span>
         </Link>
 
         {/* Desktop nav */}

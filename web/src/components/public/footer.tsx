@@ -12,7 +12,7 @@ export function PublicFooter() {
               <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-600 text-white">
                 <Shield className="h-4 w-4" />
               </div>
-              <span className="text-sm">[PROJECT_NAME]</span>
+              <span className="text-sm">HealthGuard</span>
             </Link>
             <p className="mt-3 text-xs text-gray-400 leading-relaxed">
               Open-source food safety intelligence. Built for public health.
@@ -35,12 +35,12 @@ export function PublicFooter() {
             <ul className="space-y-2 text-sm text-gray-600">
               <li><Link href="/dashboard" className="hover:text-emerald-700">Operator Login</Link></li>
               <li>
-                <a href="https://github.com/[org]/[PROJECT_NAME]" className="hover:text-emerald-700" target="_blank" rel="noopener noreferrer">
+                <a href="https://github.com/[org]/HealthGuard" className="hover:text-emerald-700" target="_blank" rel="noopener noreferrer">
                   GitHub
                 </a>
               </li>
               <li>
-                <a href="https://github.com/[org]/[PROJECT_NAME]/blob/main/docs/" className="hover:text-emerald-700" target="_blank" rel="noopener noreferrer">
+                <a href="https://github.com/[org]/HealthGuard/blob/main/docs/" className="hover:text-emerald-700" target="_blank" rel="noopener noreferrer">
                   Docs
                 </a>
               </li>
@@ -52,17 +52,17 @@ export function PublicFooter() {
             <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Project</h4>
             <ul className="space-y-2 text-sm text-gray-600">
               <li>
-                <a href="https://github.com/[org]/[PROJECT_NAME]/blob/main/CONTRIBUTING.md" className="hover:text-emerald-700" target="_blank" rel="noopener noreferrer">
+                <a href="https://github.com/[org]/HealthGuard/blob/main/CONTRIBUTING.md" className="hover:text-emerald-700" target="_blank" rel="noopener noreferrer">
                   Contribute
                 </a>
               </li>
               <li>
-                <a href="https://github.com/[org]/[PROJECT_NAME]/blob/main/SECURITY.md" className="hover:text-emerald-700" target="_blank" rel="noopener noreferrer">
+                <a href="https://github.com/[org]/HealthGuard/blob/main/SECURITY.md" className="hover:text-emerald-700" target="_blank" rel="noopener noreferrer">
                   Security
                 </a>
               </li>
               <li>
-                <a href="https://github.com/[org]/[PROJECT_NAME]/blob/main/ROADMAP.md" className="hover:text-emerald-700" target="_blank" rel="noopener noreferrer">
+                <a href="https://github.com/[org]/HealthGuard/blob/main/ROADMAP.md" className="hover:text-emerald-700" target="_blank" rel="noopener noreferrer">
                   Roadmap
                 </a>
               </li>
@@ -71,7 +71,7 @@ export function PublicFooter() {
         </div>
 
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-gray-100 pt-6 text-xs text-gray-400">
-          <p>&copy; {new Date().getFullYear()} [PROJECT_NAME] Contributors. Apache 2.0.</p>
+          <p>&copy; {new Date().getFullYear()} HealthGuard Contributors. Apache 2.0.</p>
           <p>Data sourced from FDA, USDA FSIS, and participating health departments.</p>
         </div>
       </div>

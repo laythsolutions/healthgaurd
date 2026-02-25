@@ -1,6 +1,6 @@
 # NSF PESOSE Grant Alignment Document
 ## Funding Opportunity 26-506 — Pathways to Enable Secure Open-Source Ecosystems
-### [PROJECT_NAME] — Open-Source Food Safety Intelligence Platform
+### HealthGuard — Open-Source Food Safety Intelligence Platform
 
 > **Prepared for:** U.S. National Science Foundation
 > **Program:** Pathways to Enable Secure Open-Source Ecosystems (PESOSE)
@@ -13,7 +13,7 @@
 
 ## 1. Executive Summary
 
-[PROJECT_NAME] is an Apache 2.0–licensed open-source platform that bridges IoT food safety sensors, clinical case reporting, inspection records, and federal recall feeds into a single, privacy-preserving intelligence system for public health. It is purpose-built for the U.S. food safety ecosystem — health departments, restaurants, emergency departments, and consumers — and is designed to interoperate with government data sources (FDA, USDA, CDC) out of the box.
+HealthGuard is an Apache 2.0–licensed open-source platform that bridges IoT food safety sensors, clinical case reporting, inspection records, and federal recall feeds into a single, privacy-preserving intelligence system for public health. It is purpose-built for the U.S. food safety ecosystem — health departments, restaurants, emergency departments, and consumers — and is designed to interoperate with government data sources (FDA, USDA, CDC) out of the box.
 
 The platform's core is complete and deployed as a working open-source ecosystem (OSE). This document maps every remaining roadmap item to the three PESOSE proposal tracks, explains the technical and socio-technical work required to accomplish each, and frames the full portfolio of remaining work as a coherent NSF funding narrative.
 
@@ -105,7 +105,7 @@ Signing requires a key management decision (keyless Sigstore OIDC-based signing 
 #### 3.2.1 Lab Result Upload with PFGE/WGS Metadata Support `[RFC]`
 
 **What it is:**
-Pulsed-Field Gel Electrophoresis (PFGE) and Whole-Genome Sequencing (WGS) are the gold-standard methods used by public health labs (via CDC's PulseNet network) to genetically fingerprint foodborne pathogens and link geographically dispersed cases to a single outbreak source. Currently, [PROJECT_NAME] accepts anonymized clinical case submissions but does not ingest the genetic metadata that links those cases across jurisdictions.
+Pulsed-Field Gel Electrophoresis (PFGE) and Whole-Genome Sequencing (WGS) are the gold-standard methods used by public health labs (via CDC's PulseNet network) to genetically fingerprint foodborne pathogens and link geographically dispersed cases to a single outbreak source. Currently, HealthGuard accepts anonymized clinical case submissions but does not ingest the genetic metadata that links those cases across jurisdictions.
 
 Adding WGS metadata support would allow a health department lab to submit: a pathogen isolate's allele profile (cgMLST), NCBI SRA accession, cluster ID (from CDC's NCBI Pathogen Detection pipeline), and BioSample metadata — enabling the platform to cross-reference locally detected clusters against national genetic clusters.
 
@@ -224,7 +224,7 @@ These four items are the most strategically important for grant funding. NSF PES
 #### 3.6.1 Pilot with at Least One Local Health Department
 
 **What it is:**
-A structured 6–12 month deployment of [PROJECT_NAME] at a county or city health department, covering: inspection data ingestion from the department's existing system, real-time outbreak cluster alerting, recall-to-restaurant matching and acknowledgment workflow, and health department staff training.
+A structured 6–12 month deployment of HealthGuard at a county or city health department, covering: inspection data ingestion from the department's existing system, real-time outbreak cluster alerting, recall-to-restaurant matching and acknowledgment workflow, and health department staff training.
 
 **How to accomplish it:**
 
@@ -363,7 +363,7 @@ A structured program pairing experienced contributors with new contributors — 
 #### 3.8.3 University Partnership for Student Projects
 
 **What it is:**
-Formal partnerships with 2–4 universities to integrate [PROJECT_NAME] into coursework (capstone projects, practicum courses, research assistantships) so that students contribute meaningfully to the platform while satisfying academic requirements.
+Formal partnerships with 2–4 universities to integrate HealthGuard into coursework (capstone projects, practicum courses, research assistantships) so that students contribute meaningfully to the platform while satisfying academic requirements.
 
 **How to accomplish it:**
 
@@ -448,7 +448,7 @@ Memoranda of Understanding or data sharing agreements with: CDC (Center for Surv
 1. **Engage CDC CSELS** through the NSF–CDC joint public health informatics initiative. CDC has an existing open-data program (CDC Open Technology) that actively seeks open-source tools for food safety surveillance.
 2. **Submit a technology brief to FDA's CORE Network** describing how the platform's recall-acknowledgment workflow can complement FDA's existing RFR (Recall Follow-Up Report) system — specifically as a last-mile communication channel to restaurants that currently receive recall notices by mail.
 3. **Present at ISAFP (International Association for Food Protection) annual symposium** and engage WHO's FoodNet Global network as a potential international data exchange partner.
-4. **File a formal comment** on USDA FSIS's open rulemaking on FSMA Section 204 (food traceability) citing [PROJECT_NAME]'s open-source supply chain traceback capability as a reference implementation.
+4. **File a formal comment** on USDA FSIS's open rulemaking on FSMA Section 204 (food traceability) citing HealthGuard's open-source supply chain traceback capability as a reference implementation.
 5. **Apply to participate in CDC's Data Modernization Initiative (DMI)** — a $1.7B initiative to modernize public health data infrastructure — as a complementary open-source tool.
 
 **PESOSE alignment:** Government agency partnerships are the highest-value evidence of "broad user communities across... government" for PESOSE Track 2. Even a letter of support from CDC or FDA dramatically strengthens a PESOSE proposal.
@@ -491,11 +491,11 @@ This section provides language suitable for use directly in a PESOSE Broader Imp
 
 ### 5.1 Scale of the Problem
 
-Foodborne illness affects **48 million Americans annually**, causing 128,000 hospitalizations and 3,000 deaths (CDC, 2024). Economic burden: **$15.6 billion per year** in direct costs and lost productivity (USDA ERS). The 2024 E. coli O157:H7 outbreak linked to McDonald's onions affected 104 people across 14 states before traceback was complete — a 19-day investigation that would have been accelerated by integrated supply chain and genomic data of the type [PROJECT_NAME] is designed to provide.
+Foodborne illness affects **48 million Americans annually**, causing 128,000 hospitalizations and 3,000 deaths (CDC, 2024). Economic burden: **$15.6 billion per year** in direct costs and lost productivity (USDA ERS). The 2024 E. coli O157:H7 outbreak linked to McDonald's onions affected 104 people across 14 states before traceback was complete — a 19-day investigation that would have been accelerated by integrated supply chain and genomic data of the type HealthGuard is designed to provide.
 
 ### 5.2 Gap This Project Fills
 
-Current food safety surveillance is fragmented across: state health departments (inspection records), CDC (clinical case surveillance via FoodNet), FDA (recall records), USDA FSIS (meat and poultry inspections), and hospital systems (emergency department admissions). No open-source tool integrates these streams. Existing commercial solutions are cost-prohibitive for small and rural health departments. [PROJECT_NAME] is designed to be deployable on a $50/month cloud instance or on-premises on a Raspberry Pi.
+Current food safety surveillance is fragmented across: state health departments (inspection records), CDC (clinical case surveillance via FoodNet), FDA (recall records), USDA FSIS (meat and poultry inspections), and hospital systems (emergency department admissions). No open-source tool integrates these streams. Existing commercial solutions are cost-prohibitive for small and rural health departments. HealthGuard is designed to be deployable on a $50/month cloud instance or on-premises on a Raspberry Pi.
 
 ### 5.3 Equity Considerations
 
@@ -540,6 +540,6 @@ In order of priority before the September 1, 2026 deadline:
 
 ---
 
-*This document was prepared to support [PROJECT_NAME]'s NSF PESOSE 26-506 grant application. It should be reviewed by the PI, co-PIs, institutional grants office, and legal counsel before submission. All budget figures are illustrative and must be developed with institutional sponsored research office input.*
+*This document was prepared to support HealthGuard's NSF PESOSE 26-506 grant application. It should be reviewed by the PI, co-PIs, institutional grants office, and legal counsel before submission. All budget figures are illustrative and must be developed with institutional sponsored research office input.*
 
 *Last updated: February 2026*

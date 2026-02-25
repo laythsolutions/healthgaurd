@@ -59,7 +59,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         <ShieldCheck className="h-6 w-6 text-emerald-400" />
         <div>
           <p className="text-sm font-black text-white tracking-tight">Health Dept Portal</p>
-          <p className="text-xs text-gray-500">[PROJECT_NAME]</p>
+          <p className="text-xs text-gray-500">HealthGuard</p>
         </div>
       </div>
 

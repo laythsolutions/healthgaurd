@@ -8,7 +8,7 @@ import { RecallCard, RecallCardSkeleton } from '@/components/public/recall-card'
 import { getRecalls } from '@/lib/public-api';
 
 export const metadata = {
-  title: 'Food Recalls — [PROJECT_NAME]',
+  title: 'Food Recalls — HealthGuard',
   description: 'Active FDA and USDA food safety recalls. Filter by hazard, state, or product.',
 };
 

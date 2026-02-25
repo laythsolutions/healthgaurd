@@ -15,11 +15,11 @@ export async function generateMetadata({ params }: Props) {
   try {
     const restaurant = await getRestaurant(params.id);
     return {
-      title: `${restaurant.name} — [PROJECT_NAME]`,
+      title: `${restaurant.name} — HealthGuard`,
       description: `Inspection grade and history for ${restaurant.name} in ${restaurant.city}, ${restaurant.state}.`,
     };
   } catch {
-    return { title: 'Restaurant — [PROJECT_NAME]' };
+    return { title: 'Restaurant — HealthGuard' };
   }
 }
 

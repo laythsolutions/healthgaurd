@@ -31,7 +31,7 @@ Required environment variables (per health department IdP):
 
 Claims mapping
 --------------
-The OIDC backend maps IdP claims to [PROJECT_NAME] groups and roles:
+The OIDC backend maps IdP claims to HealthGuard groups and roles:
   - If the IdP groups claim includes "HealthDeptInspector" → Django group "health_dept"
   - If the IdP groups claim includes "HealthDeptAdmin"    → Django group "admin"
   - If the user's email domain matches OIDC_HEALTH_DEPT_DOMAIN, they receive
@@ -66,7 +66,7 @@ _ADMIN_GROUP       = "admin"
 # IdP groups claim key (Azure AD / Okta both typically use "groups")
 _GROUPS_CLAIM = getattr(settings, "OIDC_GROUPS_CLAIM", "groups")
 
-# IdP group names that map to [PROJECT_NAME] roles
+# IdP group names that map to HealthGuard roles
 _INSPECTOR_CLAIM_VALUE = getattr(settings, "OIDC_INSPECTOR_GROUP", "HealthDeptInspector")
 _ADMIN_CLAIM_VALUE     = getattr(settings, "OIDC_ADMIN_GROUP",     "HealthDeptAdmin")
 
@@ -113,7 +113,7 @@ class HealthDeptOIDCBackend(OIDCAuthenticationBackend):
     def _sync_groups(self, user, claims: dict) -> None:
         """
         Derive group memberships from OIDC claims and sync them to the
-        Django user.  Existing [PROJECT_NAME] role groups are reset on
+        Django user.  Existing HealthGuard role groups are reset on
         every login so that IdP revocations take effect immediately.
         """
         idp_groups = set(claims.get(_GROUPS_CLAIM, []))

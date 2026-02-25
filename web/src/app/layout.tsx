@@ -8,8 +8,8 @@ const plusJakarta = Plus_Jakarta_Sans({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: {
-    default: '[PROJECT_NAME] — Food Safety Intelligence',
-    template: '%s — [PROJECT_NAME]',
+    default: 'HealthGuard — Food Safety Intelligence',
+    template: '%s — HealthGuard',
   },
   description: 'Open-source food safety intelligence platform. Restaurant grades, recall alerts, and outbreak advisories.',
 };

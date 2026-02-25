@@ -4,7 +4,7 @@ import { PublicNav } from '@/components/public/nav';
 import { PublicFooter } from '@/components/public/footer';
 
 export const metadata = {
-  title: '[PROJECT_NAME] — Food Safety Intelligence',
+  title: 'HealthGuard — Food Safety Intelligence',
   description: 'Search restaurant inspection grades, active recalls, and outbreak advisories. Open-source food safety platform.',
 };
 
@@ -132,12 +132,12 @@ export default function HomePage() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-16 text-center">
           <h2 className="text-2xl font-black text-gray-900">Built in the open.</h2>
           <p className="mt-3 text-gray-500 max-w-lg mx-auto text-sm leading-relaxed">
-            [PROJECT_NAME] is community-driven and Apache 2.0 licensed. Health departments, developers,
+            HealthGuard is community-driven and Apache 2.0 licensed. Health departments, developers,
             and domain experts are all welcome contributors.
           </p>
           <div className="mt-6 flex flex-col sm:flex-row justify-center gap-3">
             <a
-              href="https://github.com/[org]/[PROJECT_NAME]"
+              href="https://github.com/[org]/HealthGuard"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:border-emerald-300 hover:text-emerald-700 transition-colors"
@@ -145,7 +145,7 @@ export default function HomePage() {
               View on GitHub
             </a>
             <a
-              href="https://github.com/[org]/[PROJECT_NAME]/blob/main/CONTRIBUTING.md"
+              href="https://github.com/[org]/HealthGuard/blob/main/CONTRIBUTING.md"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"

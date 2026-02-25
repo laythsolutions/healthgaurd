@@ -8,7 +8,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
 export const metadata = {
-  title: 'Find Restaurants — [PROJECT_NAME]',
+  title: 'Find Restaurants — HealthGuard',
   description: 'Search restaurant inspection grades and violation history.',
 };
 

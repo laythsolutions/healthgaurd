@@ -11,7 +11,7 @@ try:
     from drf_yasg import openapi
     schema_view = get_schema_view(
         openapi.Info(
-            title="[PROJECT_NAME] API",
+            title="HealthGuard API",
             default_version='v1',
             description=(
                 "Open-source food safety intelligence platform. "

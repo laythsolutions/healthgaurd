@@ -12,11 +12,11 @@ export async function generateMetadata({ params }: Props) {
   try {
     const recall = await getRecall(params.id);
     return {
-      title: `${recall.title.slice(0, 60)} — [PROJECT_NAME]`,
+      title: `${recall.title.slice(0, 60)} — HealthGuard`,
       description: `${recall.recalling_firm}: ${recall.reason.slice(0, 120)}`,
     };
   } catch {
-    return { title: 'Recall — [PROJECT_NAME]' };
+    return { title: 'Recall — HealthGuard' };
   }
 }
 

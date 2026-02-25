@@ -1,6 +1,6 @@
 # Roadmap
 
-This document describes the planned development trajectory for [PROJECT_NAME]. The roadmap is maintained by the Technical Steering Committee (TSC) and updated after each community review cycle.
+This document describes the planned development trajectory for HealthGuard. The roadmap is maintained by the Technical Steering Committee (TSC) and updated after each community review cycle.
 
 Items marked **[RFC]** require a public Request for Comments before implementation begins. Community members are encouraged to comment on open RFCs in GitHub Discussions.
 

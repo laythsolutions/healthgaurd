@@ -3,7 +3,7 @@ import { PublicNav } from '@/components/public/nav';
 import { PublicFooter } from '@/components/public/footer';
 
 export const metadata = {
-  title: 'Outbreak Advisories — [PROJECT_NAME]',
+  title: 'Outbreak Advisories — HealthGuard',
   description: 'Anonymized, aggregated foodborne illness outbreak advisories from participating health departments.',
   // Revalidate every 5 minutes to match server-side cache
   other: { 'Cache-Control': 'public, max-age=300' },

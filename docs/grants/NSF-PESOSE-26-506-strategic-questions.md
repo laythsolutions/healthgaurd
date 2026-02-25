@@ -92,7 +92,7 @@ knows what "compliant on paper but not in practice" looks like.
 
 ### PI Narrative Language (for the proposal)
 
-> Leon Guy is the Principal Investigator and architect of [PROJECT_NAME]. He brings
+> Leon Guy is the Principal Investigator and architect of HealthGuard. He brings
 > 25 years of operational expertise in food service IT infrastructure, having deployed and
 > supported compliance systems at over 500 restaurant and retail locations across
 > North America and the Caribbean. His direct experience maintaining IT infrastructure
@@ -136,7 +136,7 @@ all have strong food science programs with NSF grant histories).
 
 **How to recruit a co-PI this week:**
 Send a 4-sentence email to 5–8 faculty members matching one of the profiles above:
-> "I am the lead developer of [PROJECT_NAME], an Apache 2.0–licensed open-source food
+> "I am the lead developer of HealthGuard, an Apache 2.0–licensed open-source food
 > safety intelligence platform that integrates IoT sensors, FDA/USDA recall feeds, and
 > clinical case reporting. We are applying for NSF PESOSE 26-506 (due September 1) and
 > are seeking an academic co-PI with expertise in [their specific area]. The project has a
@@ -155,7 +155,7 @@ has produced. NSF biosketches for practitioners in for-profit organizations regu
 technical reports, white papers, and open-source software releases as "products" in lieu
 of journal articles. The five strongest candidates:
 
-1. **[PROJECT_NAME] Platform — Open-Source Release (Apache 2.0)**
+1. **HealthGuard Platform — Open-Source Release (Apache 2.0)**
    Full-stack food safety intelligence platform: IoT ingestion pipeline, spatial-temporal
    outbreak clustering engine, FDA/USDA recall integration, privacy-preserving clinical
    case API, and real-time WebSocket alerting. [GitHub repository URL when published

@@ -1,5 +1,5 @@
 /**
- * [PROJECT_NAME] Service Worker
+ * HealthGuard Service Worker
  *
  * Strategies:
  *   - restaurant grade pages (/restaurants/*) — cache-first for offline browsing
