@@ -22,6 +22,7 @@ info:
     | Anonymous (`/public/*`) | 100 req / hour |
     | Authenticated users | 2 000 req / hour |
     | Institution API key | 500 req / day |
+    | AI operations (advisory, triage, normalization) | 20 req / hour |
 
     ## Versioning
 
@@ -59,6 +60,16 @@ tags:
     description: FDA / USDA recall feed and acknowledgment workflow
   - name: inspections
     description: Health department inspection records and scheduling
+  - name: ai
+  - name: submissions
+    description: |
+      Jurisdiction push API — for health departments without open-data portals.
+      Register, receive an API key, and POST batches of inspection records.
+      Authenticated via X-Submission-Key header.
+    description: |
+      AI-assisted features powered by the Claude API (Anthropic).
+      All prompts contain only aggregated, anonymized statistics — no PII.
+      Rate-limited to 20 requests per hour per user (`ai_operations` scope).
 
 # ---------------------------------------------------------------------------
 # Security schemes
@@ -81,6 +92,16 @@ components:
         Static key issued to participating healthcare institutions for
         anonymous case submission. Contact the platform operators to
         request a key.
+
+    SubmissionKey:
+      type: apiKey
+      in: header
+      name: X-Submission-Key
+      description: |
+        Static key issued to jurisdiction accounts for inspection data
+        submission. Format: `hg_live_<...>`. Obtain via the admin approval
+        workflow (POST /submissions/admin/registrations/{id}/review/).
+        Scoped to `submissions:write`.
 
   # ---------------------------------------------------------------------------
   # Reusable schemas
@@ -391,6 +412,189 @@ components:
               corrected:   { type: boolean }
         status:         { type: string }
         created_at:     { type: string, format: date-time }
+
+    # ---- AI schemas (Phase A / B / C) -------------------------------------
+
+    OutbreakAdvisoryDraft:
+      type: object
+      description: |
+        AI-generated public health advisory draft for an outbreak investigation.
+        Workflow: generating → draft → edited → published (or failed).
+      properties:
+        id:               { type: integer }
+        investigation:    { type: integer }
+        status:
+          type: string
+          enum: [generating, draft, edited, published, failed]
+        draft_text:       { type: string, description: "Original AI-generated markdown text" }
+        edited_text:      { type: ["string", "null"], description: "Investigator-edited version" }
+        current_text:
+          type: string
+          description: |
+            The text to display: `edited_text` if present, otherwise `draft_text`.
+            Read-only computed field.
+        model_used:       { type: string, description: "Claude model that generated the draft" }
+        input_tokens:     { type: ["integer", "null"] }
+        output_tokens:    { type: ["integer", "null"] }
+        error_message:    { type: string }
+        edited_by:        { type: ["integer", "null"], description: "User ID of investigator who edited" }
+        edited_at:        { type: ["string", "null"], format: date-time }
+        published_by:     { type: ["integer", "null"], description: "User ID who published" }
+        published_at:     { type: ["string", "null"], format: date-time }
+        generated_at:     { type: string, format: date-time }
+        updated_at:       { type: string, format: date-time }
+
+    ConsumerReportDetail:
+      type: object
+      description: |
+        Consumer exposure report as seen by investigators, including
+        AI triage results (populated after `/triage/` is called).
+      properties:
+        id:                      { type: integer }
+        restaurant:              { type: ["integer", "null"] }
+        visit_date:              { type: ["string", "null"], format: date }
+        onset_date:              { type: ["string", "null"], format: date }
+        symptoms:                { type: array, items: { type: string } }
+        severity:                { type: string, enum: [mild, moderate, severe] }
+        location_geohash:        { type: string }
+        # AI triage fields
+        ai_triage_score:
+          type: ["number", "null"]
+          description: "0.0–1.0 priority score (higher = more urgent)"
+        ai_credibility:
+          type: string
+          enum: [high, medium, low, spam, ""]
+        ai_extracted_food_items:
+          type: array
+          items: { type: string }
+          description: "Food items extracted by AI from report context"
+        ai_suggested_investigation:
+          type: ["integer", "null"]
+          description: "Investigation PK suggested by AI based on geo/time overlap"
+        ai_triage_notes:         { type: string }
+        ai_recommended_action:
+          type: string
+          enum: [link_to_investigation, flag_for_review, monitor, dismiss, ""]
+        ai_triaged_at:           { type: ["string", "null"], format: date-time }
+        created_at:              { type: string, format: date-time }
+
+    SupplierRiskGraph:
+      type: object
+      description: |
+        PageRank-scored food safety risk network.
+        Nodes: Restaurants, Recalls, Outbreak Investigations.
+        Edges: RecallAcknowledgments (weight 2.0 if escalated), ClinicalExposure
+        linkages, and geohash proximity (weight 0.5).
+      properties:
+        node_count:    { type: integer }
+        edge_count:    { type: integer }
+        top_restaurants:
+          type: array
+          description: Top-20 restaurants by PageRank centrality
+          items:
+            type: object
+            properties:
+              restaurant_id:   { type: integer }
+              name:            { type: string }
+              city:            { type: string }
+              state:           { type: string }
+              pagerank_score:  { type: number }
+        top_recalls:
+          type: array
+          description: Top-10 recalls by PageRank centrality
+          items:
+            type: object
+            properties:
+              recall_id:      { type: integer }
+              brand_name:     { type: string }
+              pagerank_score: { type: number }
+        top_outbreaks:
+          type: array
+          description: Top-10 outbreak investigations by PageRank centrality
+          items:
+            type: object
+            properties:
+              investigation_id: { type: integer }
+              title:            { type: string }
+              pagerank_score:   { type: number }
+
+    InspectionPriorityResult:
+      type: object
+      properties:
+        total:        { type: integer }
+        jurisdiction: { type: string }
+        restaurants:
+          type: array
+          items:
+            type: object
+            properties:
+              restaurant_id:          { type: integer }
+              name:                   { type: string }
+              city:                   { type: string }
+              state:                  { type: string }
+              priority_score:
+                type: number
+                description: "Composite 0–100 weighted priority score"
+              rank:                   { type: integer }
+              features:
+                type: object
+                description: "Score breakdown by factor (0–1 each)"
+                properties:
+                  days_since_inspection: { type: number }
+                  critical_violations:   { type: number }
+                  device_risk:           { type: number }
+                  open_recalls:          { type: number }
+                  consumer_reports:      { type: number }
+
+    AnomalyDetectionResult:
+      type: object
+      description: |
+        Rolling z-score anomaly detection result for a single IoT device.
+        Returns flagged readings that exceed the 2.5 σ composite threshold.
+      properties:
+        device_id:          { type: integer }
+        readings_analyzed:  { type: integer }
+        anomaly_count:      { type: integer }
+        max_anomaly_score:  { type: number }
+        skipped_reason:
+          type: string
+          description: "Present when detection was skipped (e.g. insufficient data)"
+        anomalies:
+          type: array
+          items:
+            type: object
+            properties:
+              timestamp:
+                type: string
+                format: date-time
+              anomaly_score:
+                type: number
+                description: "Weighted composite z-score at this reading"
+              signals:
+                type: object
+                properties:
+                  temperature_z: { type: ["number", "null"] }
+                  co2_z:         { type: ["number", "null"] }
+                  tpm_z:         { type: ["number", "null"] }
+
+    FleetAnomalyResult:
+      type: object
+      description: "Summary of anomaly detection across all active/low-battery devices."
+      properties:
+        devices_analyzed:
+          type: integer
+          description: "Total number of active/low-battery devices scanned"
+        devices_with_anomalies:
+          type: integer
+        flagged_devices:
+          type: array
+          description: "Top-20 devices by peak anomaly score"
+          items:
+            type: object
+            properties:
+              device_id:     { type: integer }
+              anomaly_count: { type: integer }
+              max_score:     { type: number }
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -1465,5 +1669,776 @@ paths:
               schema:
                 type: string
                 format: binary
+      security:
+        - BearerAuth: []
+
+  # ==========================================================================
+  # AI — Advisory Draft (Phase A)
+  # ==========================================================================
+
+  /clinical/investigations/{id}/advisory/:
+    get:
+      tags: [ai, clinical]
+      summary: Get advisory draft for an investigation
+      description: |
+        Retrieve the current AI-generated advisory draft, including status,
+        text content, token usage, and edit history.
+        Returns 404 if no draft has been generated yet — POST to generate one.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Advisory draft
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OutbreakAdvisoryDraft" }
+        "404":
+          description: Investigation or draft not found
+      security:
+        - BearerAuth: []
+
+    post:
+      tags: [ai, clinical]
+      summary: Generate (or regenerate) an AI advisory draft
+      description: |
+        Enqueues a Celery task that calls the Claude API to generate a
+        public health advisory draft from anonymized investigation statistics.
+        Returns 202 immediately; poll GET to check status.
+
+        Rate limit: 20 requests / hour (`ai_operations` scope).
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "202":
+          description: Generation queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:           { type: string }
+                  task_id:          { type: string }
+                  investigation_id: { type: integer }
+        "404":
+          description: Investigation not found
+      security:
+        - BearerAuth: []
+
+    patch:
+      tags: [ai, clinical]
+      summary: Save investigator edits to a draft
+      description: |
+        Saves the investigator's edited text and transitions the draft
+        status to `edited`. Must provide a non-empty `edited_text` body.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [edited_text]
+              properties:
+                edited_text: { type: string, minLength: 1 }
+      responses:
+        "200":
+          description: Draft updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OutbreakAdvisoryDraft" }
+        "400":
+          description: Missing or empty edited_text
+        "404":
+          description: Investigation or draft not found
+      security:
+        - BearerAuth: []
+
+    put:
+      tags: [ai, clinical]
+      summary: Publish a reviewed advisory draft
+      description: |
+        Marks a draft as published, records `published_by` and `published_at`.
+        Only drafts with status `draft` or `edited` can be published.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Draft published
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OutbreakAdvisoryDraft" }
+        "400":
+          description: Cannot publish draft in current status
+        "404":
+          description: Investigation or draft not found
+      security:
+        - BearerAuth: []
+
+  # ==========================================================================
+  # AI — Consumer Report Triage (Phase A)
+  # ==========================================================================
+
+  /clinical/consumer-reports/:
+    get:
+      tags: [ai, clinical]
+      summary: List consumer exposure reports for investigator review
+      description: |
+        Lists anonymous consumer illness reports with AI triage metadata.
+        Supports filtering by triage status, credibility, and recommended action.
+        Health dept / staff only.
+      parameters:
+        - in: query
+          name: triaged
+          schema: { type: string, enum: [true, false] }
+          description: Filter to triaged (`true`) or un-triaged (`false`) reports
+        - in: query
+          name: credibility
+          schema: { type: string, enum: [high, medium, low, spam] }
+        - in: query
+          name: action
+          schema:
+            type: string
+            enum: [link_to_investigation, flag_for_review, monitor, dismiss]
+        - in: query
+          name: page_size
+          schema: { type: integer, default: 50, maximum: 200 }
+        - in: query
+          name: offset
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: Paginated consumer report list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedList"
+                  - properties:
+                      results:
+                        type: array
+                        items: { $ref: "#/components/schemas/ConsumerReportDetail" }
+      security:
+        - BearerAuth: []
+
+  /clinical/consumer-reports/{id}/:
+    get:
+      tags: [ai, clinical]
+      summary: Retrieve a single consumer report with AI triage data
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Consumer report detail
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConsumerReportDetail" }
+        "404":
+          description: Not found
+      security:
+        - BearerAuth: []
+
+  /clinical/consumer-reports/{id}/triage/:
+    post:
+      tags: [ai, clinical]
+      summary: Trigger AI triage for a consumer report
+      description: |
+        Enqueues a Celery task that calls Claude to score credibility, extract
+        food items, and suggest linkage to active investigations.
+        Returns 202 immediately; refresh GET on the report to see results.
+
+        Rate limit: 20 requests / hour (`ai_operations` scope).
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "202":
+          description: Triage queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:    { type: string }
+                  task_id:   { type: string }
+                  report_id: { type: integer }
+        "404":
+          description: Report not found
+      security:
+        - BearerAuth: []
+
+  # ==========================================================================
+  # AI — Supplier Risk Graph (Phase C)
+  # ==========================================================================
+
+  /clinical/supplier-risk/:
+    get:
+      tags: [ai, clinical]
+      summary: PageRank-scored supplier risk graph
+      description: |
+        Builds a NetworkX graph connecting Restaurants, Recalls, and Outbreak
+        Investigations via RecallAcknowledgments, ClinicalExposure linkages,
+        and geohash proximity edges.  Scores nodes with PageRank (α = 0.85).
+
+        Returns top-20 restaurants, top-10 recalls, and top-10 outbreaks by
+        centrality score.
+
+        Requires: `pip install networkx>=3.3`.
+        Health dept / staff only.
+
+        Rate limit: 20 requests / hour (`ai_operations` scope).
+      responses:
+        "200":
+          description: Supplier risk graph
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupplierRiskGraph" }
+        "503":
+          description: networkx not installed or graph computation failed
+      security:
+        - BearerAuth: []
+
+  # ==========================================================================
+  # AI — Inspection Prioritization (Phase B)
+  # ==========================================================================
+
+  /inspections/prioritized/:
+    get:
+      tags: [ai, inspections]
+      summary: AI-ranked inspection priority list
+      description: |
+        Ranks restaurants by inspection urgency using a five-factor weighted
+        scoring model:
+
+        | Factor | Weight |
+        |--------|--------|
+        | Days since last inspection | 30 % |
+        | Critical violations (past 12 months) | 25 % |
+        | Peak IoT device risk score | 20 % |
+        | Open recall acknowledgments | 15 % |
+        | Consumer reports (past 90 days) | 10 % |
+
+        Health dept / staff only.
+      parameters:
+        - in: query
+          name: jurisdiction
+          schema: { type: string }
+          description: Partial match on source_jurisdiction (optional)
+        - in: query
+          name: top_n
+          schema: { type: integer, default: 50, maximum: 200 }
+      responses:
+        "200":
+          description: Prioritized restaurant list
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InspectionPriorityResult" }
+      security:
+        - BearerAuth: []
+
+  # ==========================================================================
+  # AI — Violation Normalization (Phase C)
+  # ==========================================================================
+
+  /inspections/{id}/normalize/:
+    get:
+      tags: [ai, inspections]
+      summary: Get normalized FDA categories for each violation
+      description: |
+        Returns all violations for an inspection with their current
+        `category` field.  If normalization hasn't been run yet, `category`
+        will be blank on each violation.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Violation normalization status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  inspection_id:    { type: integer }
+                  total_violations: { type: integer }
+                  normalized_count: { type: integer }
+                  violations:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        violation_id:      { type: integer }
+                        code:              { type: string }
+                        severity:          { type: string }
+                        description:       { type: string }
+                        category:          { type: string, nullable: true }
+                        violation_status:  { type: string }
+        "404":
+          description: Inspection not found
+      security:
+        - BearerAuth: []
+
+    post:
+      tags: [ai, inspections]
+      summary: Enqueue AI violation normalization for an inspection
+      description: |
+        Sends violation descriptions (no PII) to the Claude API to classify
+        each violation into one of 12 FDA Retail Food Safety Intervention
+        categories.  Results are persisted to `InspectionViolation.category`.
+
+        Returns 202 immediately; poll GET to see results.
+
+        Rate limit: 20 requests / hour (`ai_operations` scope).
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "202":
+          description: Normalization queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:          { type: string }
+                  task_id:         { type: string }
+                  inspection_id:   { type: integer }
+                  violation_count: { type: integer }
+        "404":
+          description: Inspection not found
+      security:
+        - BearerAuth: []
+
+  # ==========================================================================
+  # AI — IoT Anomaly Detection (Phase B)
+  # ==========================================================================
+
+  /devices/{id}/anomalies/:
+    get:
+      tags: [ai, devices]
+      summary: Rolling z-score anomaly detection for a single device
+      description: |
+        Computes per-reading rolling z-scores for temperature, CO₂, and fryer
+        oil TPM over a configurable lookback window (default 168 h = 1 week).
+        Returns flagged readings that exceed the 2.5 σ composite threshold.
+
+        Requires at least 30 readings in the window; returns `skipped_reason`
+        if insufficient data is available.
+        Health dept / staff only.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: hours
+          schema: { type: integer, default: 168, maximum: 720 }
+          description: Lookback window in hours (default 168 = 1 week, max 30 days)
+      responses:
+        "200":
+          description: Anomaly detection result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AnomalyDetectionResult" }
+      security:
+        - BearerAuth: []
+
+  /devices/anomalies/fleet/:
+    get:
+      tags: [ai, devices]
+      summary: Fleet-wide anomaly detection across all active devices
+      description: |
+        Runs rolling z-score anomaly detection on all ACTIVE and LOW_BATTERY
+        devices and returns the top-20 most anomalous devices by peak score.
+        Scheduled hourly via Celery Beat; this endpoint returns on-demand results.
+        Health dept / staff only.
+      parameters:
+        - in: query
+          name: hours
+          schema: { type: integer, default: 168, maximum: 720 }
+      responses:
+        "200":
+          description: Fleet anomaly summary
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FleetAnomalyResult" }
+      security:
+        - BearerAuth: []
+
+    # ---- Submissions --------------------------------------------------------
+    JurisdictionRegistration:
+      type: object
+      required: [name, fips_code, state, contact_email, jurisdiction_type, score_system]
+      properties:
+        name:
+          type: string
+          maxLength: 200
+          example: "Maricopa County Health Department"
+        fips_code:
+          type: string
+          pattern: "^\d{2,5}$"
+          description: 2–5 digit FIPS county/state code
+          example: "04013"
+        state:
+          type: string
+          pattern: "^[A-Z]{2}$"
+          example: "AZ"
+        contact_email:
+          type: string
+          format: email
+        jurisdiction_type:
+          type: string
+          enum: [COUNTY, CITY, STATE, TRIBAL]
+          default: COUNTY
+        website:
+          type: string
+          format: uri
+        score_system:
+          type: string
+          enum: [SCORE_0_100, GRADE_A_F, PASS_FAIL, LETTER_NUMERIC]
+          description: |
+            How this jurisdiction scores inspections.
+            SCORE_0_100: numeric 0–100; GRADE_A_F: letter grade;
+            PASS_FAIL: pass/fail boolean; LETTER_NUMERIC: hybrid.
+          default: SCORE_0_100
+        schema_map:
+          type: object
+          additionalProperties: { type: string }
+          description: |
+            Maps jurisdiction field names to canonical names.
+            e.g. {"facility_name": "restaurant_name"}
+          default: {}
+        webhook_url:
+          type: string
+          format: uri
+          description: |
+            POST callback after each batch completes. Payload is signed
+            with HMAC-SHA256 in X-Submission-Signature header.
+
+    JurisdictionAccount:
+      allOf:
+        - { $ref: "#/components/schemas/JurisdictionRegistration" }
+        - type: object
+          properties:
+            id:          { type: integer }
+            status:      { type: string, enum: [PENDING, ACTIVE, SUSPENDED] }
+            approved_at: { type: ["string", "null"], format: date-time }
+            created_at:  { type: string, format: date-time }
+
+    SubmissionRecord:
+      type: object
+      required: [restaurant_name, address, inspected_at]
+      properties:
+        restaurant_name: { type: string }
+        address:         { type: string }
+        city:            { type: string }
+        state:           { type: string }
+        zip_code:        { type: string }
+        inspected_at:
+          type: string
+          description: ISO 8601 date or datetime (e.g. 2024-03-15)
+        score:
+          type: ["number", "string", "null"]
+          description: Raw score/grade value — normalised per jurisdiction score_system
+        grade:
+          type: ["string", "null"]
+        violations:
+          type: array
+          items:
+            type: object
+            properties:
+              code:        { type: string }
+              description: { type: string }
+              severity:    { type: string, enum: [critical, serious, minor, observation] }
+              category:    { type: string }
+
+    BatchStatus:
+      type: object
+      properties:
+        id:                  { type: integer }
+        jurisdiction_name:   { type: string }
+        fips_code:           { type: string }
+        status:              { type: string, enum: [PENDING, PROCESSING, COMPLETE, FAILED] }
+        source_format:       { type: string, enum: [JSON, CSV] }
+        total_rows:          { type: integer }
+        created_count:       { type: integer }
+        skipped_count:       { type: integer }
+        error_count:         { type: integer }
+        row_errors:
+          type: array
+          items:
+            type: object
+            properties:
+              row:    { type: integer }
+              reason: { type: string }
+        webhook_delivered:     { type: boolean }
+        webhook_delivered_at:  { type: ["string", "null"], format: date-time }
+        submitted_at:          { type: string, format: date-time }
+        completed_at:          { type: ["string", "null"], format: date-time }
+
+
+  # ---------------------------------------------------------------------------
+  # Submissions — jurisdiction push API paths
+  # ---------------------------------------------------------------------------
+
+  /submissions/register/:
+    post:
+      tags: [submissions]
+      summary: Register a new jurisdiction
+      description: |
+        Public, unauthenticated. Creates a `JurisdictionAccount` with
+        `status=PENDING`. The TSC admin reviews the request and issues an
+        API key on approval.
+
+        **Rate limit:** 5 requests / hour per IP (`submission_register` scope).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JurisdictionRegistration" }
+            example:
+              name: "Maricopa County Health Department"
+              fips_code: "04013"
+              state: "AZ"
+              contact_email: "hd@maricopa.gov"
+              jurisdiction_type: "COUNTY"
+              score_system: "SCORE_0_100"
+              webhook_url: "https://hd.maricopa.gov/webhooks/foodsafety"
+      responses:
+        "201":
+          description: Registration submitted — pending review
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:        { type: integer }
+                  status:    { type: string, enum: [PENDING] }
+                  fips_code: { type: string }
+        "400":
+          description: Validation error (duplicate FIPS, bad state code, etc.)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "429":
+          description: Rate limit exceeded
+
+  /submissions/inspections/:
+    post:
+      tags: [submissions]
+      summary: Submit a batch of inspection records
+      description: |
+        Push up to **500** inspection records per request. The platform
+        normalises each record using the jurisdiction's `schema_map` and
+        `score_system`, then ingests via the standard ingest pipeline.
+
+        Processing is **asynchronous** — the response returns immediately with
+        a `batch_id`; poll `GET /submissions/batches/{id}/` for status.
+
+        **Auth:** `X-Submission-Key: hg_live_<...>` (scoped to
+        `submissions:write`).
+
+        **Rate limit:** 10 requests / hour per key (`submission_bulk` scope).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [records]
+              properties:
+                records:
+                  type: array
+                  minItems: 1
+                  maxItems: 500
+                  items: { $ref: "#/components/schemas/SubmissionRecord" }
+            example:
+              records:
+                - restaurant_name: "Taco Palace"
+                  address: "123 Main St"
+                  city: "Phoenix"
+                  inspected_at: "2024-03-15"
+                  score: 88
+                  violations:
+                    - code: "4-601.11"
+                      description: "Food contact surfaces not clean"
+                      severity: "minor"
+      responses:
+        "202":
+          description: Batch accepted for async processing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  batch_id:   { type: integer }
+                  status:     { type: string, enum: [PENDING] }
+                  total_rows: { type: integer }
+        "400":
+          description: Validation error (missing required fields, >500 rows)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401":
+          description: Missing or invalid X-Submission-Key
+        "403":
+          description: Account suspended or key lacks submissions:write scope
+        "429":
+          description: Rate limit exceeded
+      security:
+        - SubmissionKey: []
+
+  /submissions/batches/:
+    get:
+      tags: [submissions]
+      summary: List own jurisdiction's submission batches
+      description: |
+        Returns all batches submitted by the authenticated jurisdiction's
+        API key, newest first. Paginated (page size 50).
+      responses:
+        "200":
+          description: Paginated batch list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/PaginatedList" }
+                  - type: object
+                    properties:
+                      results:
+                        type: array
+                        items: { $ref: "#/components/schemas/BatchStatus" }
+        "401":
+          description: Missing or invalid X-Submission-Key
+      security:
+        - SubmissionKey: []
+
+  /submissions/batches/{id}/:
+    get:
+      tags: [submissions]
+      summary: Get batch status and row-level errors
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Full batch detail
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BatchStatus" }
+        "401":
+          description: Missing or invalid X-Submission-Key
+        "404":
+          description: Batch not found (or belongs to another jurisdiction)
+      security:
+        - SubmissionKey: []
+
+  /submissions/admin/registrations/:
+    get:
+      tags: [submissions]
+      summary: List jurisdiction registration requests (admin)
+      description: |
+        Returns registrations filtered by `status` (default: `PENDING`).
+        Staff / superuser JWT required.
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [PENDING, ACTIVE, SUSPENDED]
+            default: PENDING
+      responses:
+        "200":
+          description: List of JurisdictionAccount records
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/JurisdictionAccount" }
+        "401":
+          description: Not authenticated
+        "403":
+          description: Not an admin user
+      security:
+        - BearerAuth: []
+
+  /submissions/admin/registrations/{id}/review/:
+    post:
+      tags: [submissions]
+      summary: Approve or reject a jurisdiction registration (admin)
+      description: |
+        On **approve**: creates an `APIKey` scoped to `submissions:write`,
+        links it to the account, sets `status=ACTIVE`. The `api_key` field
+        in the response contains the **one-time plaintext key** — store it
+        securely and forward it to the jurisdiction contact.
+
+        On **reject**: sets `status=SUSPENDED`.
+
+        Staff / superuser JWT required.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action:
+                  type: string
+                  enum: [approve, reject]
+                notes:
+                  type: string
+                  description: Internal review notes (not sent to applicant)
+      responses:
+        "200":
+          description: Review outcome
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:      { type: integer }
+                  status:  { type: string, enum: [ACTIVE, SUSPENDED] }
+                  api_key:
+                    type: string
+                    description: |
+                      Only present on approval. Plaintext `hg_live_...` key —
+                      shown once, cannot be retrieved again.
+        "400":
+          description: Invalid action or account already active
+        "401":
+          description: Not authenticated
+        "403":
+          description: Not an admin user
+        "404":
+          description: Registration not found
       security:
         - BearerAuth: []
