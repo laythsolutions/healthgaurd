@@ -56,6 +56,10 @@ LOCAL_APPS = [
     'apps.recalls',
     'apps.inspections',
     'apps.clinical',
+    # RFC-002: product & transaction data pipeline
+    'apps.products',
+    # Jurisdiction submission push API
+    'apps.submissions',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -64,6 +68,7 @@ AUTH_USER_MODEL = 'accounts.User'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'apps.middleware.SecurityHeadersMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',
@@ -129,13 +134,35 @@ CACHES = {
     }
 }
 
-# Password validation
+# Password validation — minimum 12 characters, not in common list, not all-numeric
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {'min_length': 12},
+    },
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
+
+# ---------------------------------------------------------------------------
+# Security hardening — safe defaults; production values override via env
+# ---------------------------------------------------------------------------
+X_FRAME_OPTIONS = 'DENY'
+SECURE_CONTENT_TYPE_NOSNIFF = True   # Django adds X-Content-Type-Options: nosniff
+SECURE_BROWSER_XSS_FILTER = True     # Sets X-XSS-Protection: 1; mode=block (legacy)
+
+# Production-only settings (skipped in DEBUG so local dev works over HTTP)
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000       # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_HTTPONLY = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
@@ -191,11 +218,22 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.ScopedRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon':         '200/hour',   # Unauthenticated public API
-        'user':         '2000/hour',  # Authenticated users (health dept etc.)
-        'public_data':  '100/hour',   # Stricter tier for /api/v1/public/* endpoints
-        'clinical':     '500/day',    # Institution API key submissions
-        'burst':        '30/min',     # Burst protection for all anon requests
+        'anon':                '200/hour',   # Unauthenticated public API
+        'user':                '2000/hour',  # Authenticated users (health dept etc.)
+        'public_data':         '100/hour',   # Stricter tier for /api/v1/public/* endpoints
+        'clinical':            '500/day',    # Institution API key submissions
+        'burst':               '30/min',     # Burst protection for all anon requests
+        'consumer_report':     '3/hour',     # RFC-001: anonymous consumer exposure reports
+        # Auth endpoint specific — stricter to block brute-force and enumeration
+        'auth_login':          '5/min',      # JWT token obtain (login attempts)
+        'auth_register':       '10/hour',    # New account registration
+        'auth_password_reset': '3/hour',     # Password-reset email requests
+        'auth_mfa':            '10/10min',   # MFA verification attempts per user
+        # AI features — Claude API calls are expensive; 20/hour keeps costs bounded
+        'ai_operations':       '20/hour',    # Advisory drafting, triage, normalization
+        # Jurisdiction submission API
+        'submission_bulk':     '10/hour',    # Per-key batch submission limit
+        'submission_register': '5/hour',     # Public registration form
     },
 }
 
@@ -381,6 +419,18 @@ if not DEBUG and not ANONYMIZATION_SALT:
 # Intelligence service URL (for inspection record ingestion bridge)
 INTELLIGENCE_SERVICE_URL = os.getenv('INTELLIGENCE_SERVICE_URL', 'http://intelligence:8001')
 
+# Gateway API key — used by Pi MQTT bridges to push topology snapshots
+GATEWAY_API_KEY = os.getenv('GATEWAY_API_KEY', '')
+
+# ---------------------------------------------------------------------------
+# AI / LLM — Claude API (Anthropic)
+# ---------------------------------------------------------------------------
+# Required for: outbreak advisory drafting, consumer report triage
+# Generate at: https://console.anthropic.com/
+ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', '')
+# Model used for AI features — claude-sonnet-4-6 balances capability and cost
+ANTHROPIC_MODEL = os.getenv('ANTHROPIC_MODEL', 'claude-sonnet-4-6')
+
 # Celery Beat schedule
 CELERY_BEAT_SCHEDULE = {
     # Recall feed synchronization
@@ -425,5 +475,25 @@ CELERY_BEAT_SCHEDULE = {
     'device-risk-scoring-nightly': {
         'task': 'apps.devices.tasks.update_device_risk_scores',
         'schedule': 60 * 60 * 24,
+    },
+    # RFC-001: purge consumer report photos past their 24-hour expiry (hourly)
+    'purge-consumer-report-photos-hourly': {
+        'task': 'apps.clinical.tasks.purge_consumer_report_photos',
+        'schedule': 60 * 60,
+    },
+    # RFC-002: sync retail transactions from all enabled partners every 6 hours
+    'sync-retail-transactions': {
+        'task': 'apps.products.tasks.sync_all_retail_partners',
+        'schedule': 60 * 60 * 6,
+    },
+    # RFC-002: nightly purge of transactions past their retention window
+    'purge-old-retail-transactions': {
+        'task': 'apps.products.tasks.purge_old_transactions',
+        'schedule': 60 * 60 * 24,
+    },
+    # Phase B: IoT anomaly detection — hourly fleet scan
+    'iot-anomaly-detection-hourly': {
+        'task': 'apps.devices.tasks.detect_fleet_anomalies',
+        'schedule': 60 * 60,
     },
 }

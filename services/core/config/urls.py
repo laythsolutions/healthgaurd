@@ -1,32 +1,21 @@
 """URL configuration for HealthGuard Cloud Backend"""
 
+import os
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from rest_framework import permissions
+from django.http import HttpResponse, Http404
+from django.views.generic import TemplateView
 
-try:
-    from drf_yasg.views import get_schema_view
-    from drf_yasg import openapi
-    schema_view = get_schema_view(
-        openapi.Info(
-            title="HealthGuard API",
-            default_version='v1',
-            description=(
-                "Open-source food safety intelligence platform. "
-                "Connects restaurant inspections, IoT sensor monitoring, "
-                "recall tracking, and clinical outbreak detection."
-            ),
-            contact=openapi.Contact(email="api@[project-domain]"),
-            license=openapi.License(name="Apache 2.0"),
-        ),
-        public=True,
-        permission_classes=[permissions.AllowAny],
-    )
-    _yasg_available = True
-except ImportError:
-    _yasg_available = False
+def _openapi_yaml_view(request):
+    """Serve the hand-maintained OpenAPI spec from schemas/openapi.yaml."""
+    spec_path = settings.BASE_DIR.parent.parent / 'schemas' / 'openapi.yaml'
+    if not spec_path.exists():
+        raise Http404("openapi.yaml not found")
+    content = spec_path.read_bytes()
+    return HttpResponse(content, content_type='application/yaml')
+
 
 urlpatterns = [
     # Admin
@@ -49,14 +38,16 @@ urlpatterns = [
     path('api/v1/inspections/', include('apps.inspections.urls')),
     path('api/v1/clinical/', include('apps.clinical.urls')),
 
-]
+    # RFC-002: product & retail transaction data pipeline
+    path('api/v1/products/', include('apps.products.urls')),
 
-# API Documentation (requires drf-yasg: pip install drf-yasg)
-if _yasg_available:
-    urlpatterns += [
-        path('api/docs/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
-        path('api/redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
-    ]
+    # Jurisdiction submission push API
+    path('api/v1/submissions/', include('apps.submissions.urls')),
+
+    # API Documentation — Redoc UI + raw OpenAPI spec (no extra packages required)
+    path('api/docs/', TemplateView.as_view(template_name='api_docs.html'), name='api-docs'),
+    path('api/docs/openapi.yaml', _openapi_yaml_view, name='api-docs-spec'),
+]
 
 # OIDC SSO — only active when mozilla-django-oidc is installed
 try:
